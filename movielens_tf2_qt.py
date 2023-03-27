@@ -373,7 +373,7 @@ class Movielens_Learner(QObject, BaseEstimator):
                     * (1 + step + steps_per_epoch * epoch)
                     / (self.num_epochs * steps_per_epoch)
                 )
-                self.progreso.emit(porcentaje_completado)
+                self.progreso.emit(int(porcentaje_completado))
 
         # save in the end...
         # self.autosave()

@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'movielens.ui'
+# Form implementation generated from reading ui file '/Users/oluaces/Library/CloudStorage/OneDrive-UniversidaddeOviedo/PythonProjects/Movielens/movielens.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -48,12 +48,12 @@ class Ui_MainWindow(object):
         self.cb_X.setGeometry(QtCore.QRect(340, 410, 104, 26))
         self.cb_X.setObjectName("cb_X")
         self.line = QtWidgets.QFrame(parent=self.centralwidget)
-        self.line.setGeometry(QtCore.QRect(0, 410, 141, 31))
+        self.line.setGeometry(QtCore.QRect(10, 410, 141, 31))
         self.line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         self.line.setObjectName("line")
         self.formLayoutWidget_3 = QtWidgets.QWidget(parent=self.centralwidget)
-        self.formLayoutWidget_3.setGeometry(QtCore.QRect(0, 440, 141, 85))
+        self.formLayoutWidget_3.setGeometry(QtCore.QRect(10, 440, 141, 85))
         self.formLayoutWidget_3.setObjectName("formLayoutWidget_3")
         self.layout_variables = QtWidgets.QFormLayout(self.formLayoutWidget_3)
         self.layout_variables.setContentsMargins(0, 0, 0, 0)
@@ -81,7 +81,7 @@ class Ui_MainWindow(object):
         self.label_5.setObjectName("label_5")
         self.layout_variables.setWidget(1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_5)
         self.verticalLayoutWidget = QtWidgets.QWidget(parent=self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(0, 290, 151, 112))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 290, 151, 112))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.layout_fijos = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.layout_fijos.setContentsMargins(0, 0, 0, 0)
@@ -119,7 +119,7 @@ class Ui_MainWindow(object):
         self.fl_fijos_texto.setWidget(2, QtWidgets.QFormLayout.ItemRole.FieldRole, self.le_nu)
         self.layout_fijos.addLayout(self.fl_fijos_texto)
         self.verticalLayoutWidget_2 = QtWidgets.QWidget(parent=self.centralwidget)
-        self.verticalLayoutWidget_2.setGeometry(QtCore.QRect(0, 561, 151, 218))
+        self.verticalLayoutWidget_2.setGeometry(QtCore.QRect(10, 561, 151, 218))
         self.verticalLayoutWidget_2.setObjectName("verticalLayoutWidget_2")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_2)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -128,7 +128,7 @@ class Ui_MainWindow(object):
         self.pb_Aprender.setObjectName("pb_Aprender")
         self.verticalLayout.addWidget(self.pb_Aprender)
         self.progressBar = QtWidgets.QProgressBar(parent=self.verticalLayoutWidget_2)
-        self.progressBar.setProperty("value", 0)
+        self.progressBar.setProperty("value", 24)
         self.progressBar.setObjectName("progressBar")
         self.verticalLayout.addWidget(self.progressBar)
         self.pb_Parar = QtWidgets.QPushButton(parent=self.verticalLayoutWidget_2)

@@ -78,10 +78,10 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         self.le_minibatch.setValidator(QIntValidator(1, len(self._train_pj) // 10))
         learningrate_validator = QDoubleValidator(1e-6, 1.0, 10)
         learningrate_validator.setNotation(QDoubleValidator.Notation.ScientificNotation)
-        self.le_learningrate.setValidator(learningrate_validator)
+        # self.le_learningrate.setValidator(learningrate_validator)
         nu_validator = QDoubleValidator(0, 1.0, 10)
         nu_validator.setNotation(QDoubleValidator.Notation.ScientificNotation)
-        self.le_nu.setValidator(nu_validator)
+        # self.le_nu.setValidator(nu_validator)
         self.le_epochs.setValidator(QIntValidator(1, 100))
         self.le_drawevery.setValidator(QIntValidator(1, 10))
 
@@ -609,13 +609,13 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
     @pyqtSlot(name="habilitar_widgets_para_entrenar")
     def habilitar_widgets_para_entrenar(self):
+        self.progressBar.setRange(0, 100)  # Va a ir en porcentaje
+        self.progressBar.reset()
         self.widgets_habilitados(True)
 
     @pyqtSlot(name="deshabilitar_widgets_para_entrenar")
     def deshabilitar_widgets_para_entrenar(self):
         self.widgets_habilitados(False)
-        self.progressBar.setRange(0, 100)  # Va a ir en porcentaje
-        self.progressBar.reset()
 
     def widgets_habilitados(self, estado=True):
         # Hay widgets que tras el primer entrenamiento deben quedar deshabilitados hasta que se cree un nuevo modelo:
@@ -641,9 +641,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         )  # Este botón va al revés que todos lo demás
         self.repaint()  # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
 
-    def _predicciones_para_usuario(
-        self,
-    ):
+    def _predicciones_para_usuario(self):
         if self._hay_usuario_interactivo:
             # Creamos el dataframe para hacer la predicción para el usuario interactivo (el último) con todas las peliculas
             for_prediction = pd.DataFrame(columns=["user", "movie"])
