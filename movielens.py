@@ -365,7 +365,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
         # Leyenda
         self.graphicsView_errores.addLegend()
-        
+
         # Lista de coordenadas X
         self.global_step_list.append(gs)
         # Lista de coordenadas Y del error de entrenamiento

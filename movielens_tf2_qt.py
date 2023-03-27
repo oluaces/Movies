@@ -1,21 +1,14 @@
-# ESTO HAY QUE REPROGRAMARLO EN CONDICIONES
-
-# import code
-# import glob
 import os
 import math
 import random
 import json
 
-# import collections
-# from itertools import compress
 import pandas as pd
 
 import numpy as np
 import tensorflow as tf
 from sklearn.base import BaseEstimator, TransformerMixin
 
-# import pickle
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from datetime import timedelta
 from time import time
