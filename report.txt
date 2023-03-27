@@ -1,0 +1,38 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 1 files
+Detected 2 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: movielens_tf_qt.py
+--------------------------------------------------------------------------------
+movielens_tf_qt.py:368:15: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+movielens_tf_qt.py:374:20: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+================================================================================
+Detailed log follows:
+
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'movielens_tf_qt.py'
+ outputting to 'movielens_tf2_qt.py'
+--------------------------------------------------------------------------------
+
+127:12: INFO: Renamed 'tf.random.set_random_seed' to 'tf.compat.v1.random.set_random_seed'
+131:24: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+132:30: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+133:31: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+138:33: INFO: Renamed 'tf.truncated_normal' to 'tf.random.truncated_normal'
+140:33: INFO: Renamed 'tf.truncated_normal' to 'tf.random.truncated_normal'
+160:24: INFO: Added keywords to args of function 'tf.reduce_mean'
+163:27: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+165:27: INFO: Renamed 'tf.train.AdagradOptimizer' to 'tf.compat.v1.train.AdagradOptimizer'
+167:27: INFO: Renamed 'tf.train.GradientDescentOptimizer' to 'tf.compat.v1.train.GradientDescentOptimizer'
+170:28: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+171:26: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+174:24: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+182:17: INFO: Renamed 'tf.diag_part' to 'tf.linalg.tensor_diag_part'
+192:17: INFO: Renamed 'tf.diag_part' to 'tf.linalg.tensor_diag_part'
+368:15: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+374:20: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+--------------------------------------------------------------------------------
+
