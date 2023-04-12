@@ -31,7 +31,8 @@ import datetime
 
 # import os
 
-from movielens_tf2_qt import Movielens_Learner, load_and_recode_pj
+# from movielens_tf2_qt import Movielens_Learner, load_and_recode_pj
+from movielens_keras import Movielens_Learner, load_and_recode_pj
 import ui_movielens
 
 # import tensorflow as tf
@@ -57,7 +58,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         self.peliculas_emb = None
         self.usuarios_emb = None
 
-        # Para ir almacenando los datos que van a ser dibujados
+        # # Para ir almacenando los datos que van a ser dibujados
         self.global_step_list = []  # global step (iteración)
         self.avg_error_list = []  # error medio de entrenamiento (rescritura)
         self.avg_error_test_list = []  # error medio de entrenamiento (rescritura)
@@ -181,7 +182,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
             self.tableWidget.setItem(fila, 2, item)
 
     @pyqtSlot(name="cargar_modelo")
-    def cargar_modelo(self):
+    def cargar_modelo(self) -> None:
         # Escoger el directorio del que cargar el modelo
         fd = QFileDialog(self, "Directorio donde está el modelo", ".", "*.csv")
         fd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
@@ -189,7 +190,8 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         if fd.exec() == QDialog.DialogCode.Accepted:
             path = fd.selectedFiles()[0]
             try:
-                self._learner.restore_on_created_object(path + "/model.ckpt")
+                # self._learner.restore_on_created_object(path + "/model.ckpt")
+                self._learner.restore_model(path)
                 self.__hiperparametros_al_gui()
             except:
                 QMessageBox.warning(
@@ -197,7 +199,8 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
                 )
 
     @pyqtSlot(name="guardar_modelo")
-    def guardar_modelo(self):
+    def guardar_modelo(self) -> None:
+        return
         # Escoger directorio donde guardar el modelo
         fd = QFileDialog(self, "Directorio donde está el modelo", ".", "*.csv")
         fd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
@@ -212,7 +215,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
                     self, "Guardado de modelo", "No ha sido posible guardar el modelo"
                 )
 
-    @pyqtSlot(name="recoger_hiperparametros")
+    # @pyqtSlot(name="recoger_hiperparametros")
     def recoger_hiperparametros(self):
         """
         Recoger y validar los campos de entrada de los hiperparámetros
@@ -227,7 +230,8 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
             "drawevery",
             "random_seed",
         ]
-        param_actuales = self._learner.get_params(deep=False)
+        # param_actuales = self._learner.get_params(deep=False)
+        param_actuales = self._learner.get_params()
         param_nuevos = {}
         param_del_ui = {}
         param_del_ui["K"] = int(self.le_K.text())
@@ -252,14 +256,14 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
     @pyqtSlot(name="redibujar_peliculas")
     def redibujar_peliculas(self):
-        texto_cb_X = self.cb_X.currentText()
-        texto_cb_Y = self.cb_Y.currentText()
+        texto_cb_X: str = self.cb_X.currentText()
+        texto_cb_Y: str = self.cb_Y.currentText()
         if texto_cb_X != "" and texto_cb_Y != "" and self.peliculas_emb is not None:
             # Hay que leer las variables (columnas de peliculas_emb) elegidas en los combos de los ejes
-            eje_x = int(texto_cb_X) - 1
-            eje_y = int(texto_cb_Y) - 1
-            peliculas_emb_x = self.peliculas_emb[eje_x, :]
-            peliculas_emb_y = self.peliculas_emb[eje_y, :]
+            eje_x: int = int(texto_cb_X) - 1
+            eje_y: int = int(texto_cb_Y) - 1
+            peliculas_emb_x: np.ndarray = self.peliculas_emb[eje_x, :]
+            peliculas_emb_y: np.ndarray = self.peliculas_emb[eje_y, :]
             # p = pg.mkPen('k', width=2)
 
             pdi = self.graphicsView_pelis.plot(
@@ -275,33 +279,33 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
             # Etiquetar las de los extremos (izquierda, derecha, arriba y abajo)
             # izquierda
-            max_length = 40
-            min_x = peliculas_emb_x.min()
-            index_min_x = peliculas_emb_x.argmin()
-            titulo = self.peliculas[index_min_x]
+            max_length: int = 40
+            min_x: float = peliculas_emb_x.min()
+            index_min_x: int = peliculas_emb_x.argmin()
+            titulo: str = self.peliculas[index_min_x]
             titulo = titulo[:max_length]
-            etiqueta = pg.TextItem(text=titulo, color="k")
+            etiqueta: pg.TextItem = pg.TextItem(text=titulo, color="k")
             etiqueta.setPos(min_x, peliculas_emb_y[index_min_x])
             self.graphicsView_pelis.addItem(etiqueta)
             # derecha
-            max_x = peliculas_emb_x.max()
-            index_max_x = peliculas_emb_x.argmax()
+            max_x: float = peliculas_emb_x.max()
+            index_max_x: int = peliculas_emb_x.argmax()
             titulo = self.peliculas[index_max_x]
             titulo = titulo[:max_length]
             etiqueta = pg.TextItem(text=titulo, color="k")
             etiqueta.setPos(max_x, peliculas_emb_y[index_max_x])
             self.graphicsView_pelis.addItem(etiqueta)
             # abajo
-            min_y = peliculas_emb_y.min()
-            index_min_y = peliculas_emb_y.argmin()
+            min_y: float = peliculas_emb_y.min()
+            index_min_y: int = peliculas_emb_y.argmin()
             titulo = self.peliculas[index_min_y]
             titulo = titulo[:max_length]
             etiqueta = pg.TextItem(text=titulo, color="k")
             etiqueta.setPos(peliculas_emb_x[index_min_y], min_y)
             self.graphicsView_pelis.addItem(etiqueta)
             # arriba
-            max_y = peliculas_emb_y.max()
-            index_max_y = peliculas_emb_y.argmax()
+            max_y: float = peliculas_emb_y.max()
+            index_max_y: int = peliculas_emb_y.argmax()
             titulo = self.peliculas[index_max_y]
             titulo = titulo[:max_length]
             etiqueta = pg.TextItem(text=titulo, color="k")
@@ -329,7 +333,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
                         clear=False,
                     )
 
-                    angulo = math.degrees(math.atan(usuario_y / usuario_x))
+                    angulo: int = int(math.degrees(math.atan(usuario_y / usuario_x)))
                     # print(usuario_x, usuario_y, angulo)
                     l = pg.InfiniteLine(
                         angle=90 + angulo, pos=(0, 0), pen=pg.mkPen(color="r", width=4)
@@ -619,7 +623,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
     def widgets_habilitados(self, estado=True):
         # Hay widgets que tras el primer entrenamiento deben quedar deshabilitados hasta que se cree un nuevo modelo:
-        # self.le_nu, self.le_learningrate, self.le_K, self.cb_semillaaleatoria, van aparte
+        # self.le_K, self.cb_semillaaleatoria, van aparte
         lista_widgets = [
             self.le_epochs,
             self.le_minibatch,
