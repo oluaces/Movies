@@ -598,21 +598,21 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
     @pyqtSlot(name="habilitar_cambio_hparams")
     def habilitar_cambio_hparams(self):
-        # self.le_nu.setEnabled(True)
-        # self.le_learningrate.setEnabled(True)
         self.le_K.setEnabled(True)
         self.cb_semillaaleatoria.setEnabled(True)
         # y deshabilitamos Guardar Modelo, puesto que NO hay modelo creado
         self.actionGuardar_modelo_entrenado.setEnabled(False)
+        # y lo mismo para exportar los embeddings
+        self.actionExportar.setEnabled(False)
 
     @pyqtSlot(name="deshabilitar_cambio_hparams")
     def deshabilitar_cambio_hparams(self):
-        # self.le_nu.setEnabled(False)
-        # self.le_learningrate.setEnabled(False)
         self.le_K.setEnabled(False)
         self.cb_semillaaleatoria.setEnabled(False)
         # y habilitamos Guardar Modelo, puesto que ya hay modelo creado
         self.actionGuardar_modelo_entrenado.setEnabled(True)
+        # y lo mismo para exportar los embeddings
+        self.actionExportar.setEnabled(True)
 
     @pyqtSlot(name="habilitar_widgets_para_entrenar")
     def habilitar_widgets_para_entrenar(self):

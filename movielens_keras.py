@@ -21,26 +21,22 @@ class Movielens_Model(tf.keras.Model):
         self.loss_tracker = tf.keras.metrics.Mean(name="pref. loss")
 
     def train_step(self, data):
-        # We can change the default convention for parameters (tuple x, y and weights)
-        # and use any data we want.
         u, b, w = data[:, 0:1], data[:, 1:2], data[:, 2:3]
 
         with tf.GradientTape() as tape:
-            y_best, y_worst = self([u, b, w], training=True)
-            # Compute the loss value
-            # (the loss function is configured in `compile()`)
+            y_best, y_worst = self([u, b, w], training=True) # type: ignore
             # loss = self.compiled_loss(y_best, y_worst)
             loss = tf.math.maximum(0.0, 1.0 - y_best + y_worst)
 
-        # Compute gradients
+        # Calcular gradientes
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
-        # Update weights
+        # Actualizar los pesos
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-        # Compute our own metrics
+        # Calcular nuestra propia métrica
         self.loss_tracker.update_state(loss)
 
-        # Return a dict mapping metric names to current value
+        # Retornar un dict mapeando los nombres de las métricas con su valores
         return {m.name: m.result() for m in self.metrics}
 
     @property
@@ -49,12 +45,11 @@ class Movielens_Model(tf.keras.Model):
 
     def test_step(self, data):
         u, b, w = data[:, 0:1], data[:, 1:2], data[:, 2:3]
-        y_best, y_worst = self([u, b, w], training=False)
+        y_best, y_worst = self([u, b, w], training=False) # type: ignore
         loss = tf.math.maximum(0.0, 1.0 - y_best + y_worst)
-
         self.loss_tracker.update_state(loss)
 
-        # Return a dict mapping metric names to current value
+        # Retornar un dict mapeando los nombres de las métricas con su valores
         return {m.name: m.result() for m in self.metrics}
 
 
@@ -106,8 +101,9 @@ class Movielens_Learner(QObject):
 
         # # La creación del grafo se deja para la primera vez que se intente entrenar el sistema
         self.the_model: Movielens_Model | None = None
+        
         # Desabilitar GPU, en Mac M1/M2 no va fino :(
-        tf.config.set_visible_devices([], "GPU")
+        # tf.config.set_visible_devices([], "GPU")
 
     def set_params(self, **params) -> None:
         # K no va a poder ser modificada, sólo se permite desde la interfaz gráfica
@@ -147,6 +143,16 @@ class Movielens_Learner(QObject):
 
         return params_actuales
 
+    @property
+    def W_embedding(self) -> tf.keras.layers.Embedding:
+        return self.the_model.get_layer(name="W")
+    
+    @property
+    def V_embedding(self) -> tf.keras.layers.Embedding:
+        return self.the_model.get_layer(name="V")
+    
+
+    
     def _init_graph(self) -> None:
         # Semilla de generador de aleatorios
         if self.random_seed:
@@ -164,14 +170,14 @@ class Movielens_Learner(QObject):
         worst_movie = tf.keras.Input(shape=(None,), name="worst_movie")
         emb_reg = tf.keras.regularizers.L2(l2=self.nu)
 
-        self.W_embedding = tf.keras.layers.Embedding(
+        W = tf.keras.layers.Embedding(
             self.num_users,
             self.K,
             name="W",
             embeddings_initializer="uniform",
             embeddings_regularizer=emb_reg,
         )
-        self.V_embedding = tf.keras.layers.Embedding(
+        V = tf.keras.layers.Embedding(
             self.num_movies,
             self.K,
             name="V",
@@ -179,9 +185,9 @@ class Movielens_Learner(QObject):
             embeddings_regularizer=emb_reg,
         )
 
-        Wu = self.W_embedding(input_user)
-        Vb = self.V_embedding(best_movie)
-        Vw = self.V_embedding(worst_movie)
+        Wu = W(input_user)
+        Vb = V(best_movie)
+        Vw = V(worst_movie)
 
         f_best = tf.keras.layers.Dot(axes=1, normalize=False, name="WuVb")([Wu, Vb])
         f_worst = tf.keras.layers.Dot(axes=1, normalize=False, name="WuVw")([Wu, Vw])
@@ -195,15 +201,15 @@ class Movielens_Learner(QObject):
             # loss = Movielens_PrefLoss # esto no lo doy echado a andar correctamente, la "empotro" en el fit()
         )
         self.global_step = 0
-        self.hay_grafo = True
+        # self.hay_grafo = True
         self.grafo_construido.emit()
 
     def reset_graph(self) -> None:
         self.the_model = None
         self.grafo_eliminado.emit()
 
-    def summary(self, *args, **kwargs):
-        return self.the_model.summary(*args, **kwargs)
+    # def summary(self, *args, **kwargs):
+    #     return self.the_model.summary(*args, **kwargs)
 
     # def fit(self, *args, **kwargs):
     #     return self.the_model.fit(*args, **kwargs)
@@ -283,8 +289,8 @@ class Movielens_Learner(QObject):
             # Iterar sobre los batches del conjunto de entrenamiento
             metric_values: dict = {}
             for step, x_batch_train in enumerate(training_data):
-                print(f"Training step {step}")
-                batch_size: int = x_batch_train.shape[0]
+                # print(f"Training step {step}")
+                # batch_size: int = x_batch_train.shape[0]
                 metrics_values = self.the_model.train_step(x_batch_train)
 
                 self.global_step += 1
@@ -397,17 +403,20 @@ class Movielens_Learner(QObject):
 
     def restore_model(self, path) -> None:
         self.the_model = tf.keras.models.load_model(path, custom_objects={"Movielens_Model": Movielens_Model})
-        # TODO:
-        # Y ahora tenemos que rellenar correctamente los parámetros:
-        # K, learning_rate, nu
-        # Los demás forman parte del experimento en cada momento, no del modelo
+        # Y ahora tenemos que rellenar correctamente los parámetros K y nu de Movielens_Learner,
+        # los demás forman parte del experimento en cada momento, no del modelo
         if self.the_model is None:
             raise RuntimeError("Modelo no cargado por alguna razón")
+        
         laW : tf.keras.layers.Embedding = self.the_model.get_layer(name="W")
         self.K = laW.output_dim
         self.nu = laW.embeddings_regularizer.get_config()["l2"]
         opt = self.the_model.optimizer
         self.learning_rate = opt.get_config()["learning_rate"]
+        # Y emitimos que ya hay modelo: se podrá grabar y exportar embeddings, 
+        # además de seguir entrenando.
+        self.grafo_construido.emit()
+
 
 
     def save(self, path:str)->None:
@@ -466,7 +475,7 @@ if __name__ == "__main__":
         # test_dataset = test_dataset.batch(test_dataset.cardinality())
 
         MV_learner: Movielens_Learner = Movielens_Learner(
-            num_users+1,  # hay que contar con el interactivo, para cuando lo haya TODO: arreglar esta mierda
+            num_users+1,  # hay que contar con el interactivo, para cuando lo haya
             num_movies,
             learning_rate=0.01,
             nu=1e-2,
