@@ -8,11 +8,11 @@ import pandas as pd
 from datetime import timedelta
 from time import time
 import math
+from copy import deepcopy
 
-
-class Movielens_PrefLoss(tf.keras.losses.Loss):
-    def call(self, best, worst):
-        return tf.math.maximum(0.0, 1.0 - best + worst)
+# class Movielens_PrefLoss(tf.keras.losses.Loss):
+#     def call(self, best, worst):
+#         return tf.math.maximum(0.0, 1.0 - best + worst)
 
 
 class Movielens_Model(tf.keras.Model):
@@ -77,11 +77,11 @@ class Movielens_Learner(QObject):
         nu=0.000001,
         num_epochs=2,
         batch_size=25,
-        batch_gen="random",
+        # batch_gen="random",
         drawevery=2,
         random_seed=True,
         # optimizer="Adam",
-        save_path="movielens_model",
+        # save_path="movielens_model",
     ) -> None:
         super().__init__()
 
@@ -90,12 +90,12 @@ class Movielens_Learner(QObject):
         self.nu = nu
         self.num_epochs = num_epochs
         self.batch_size = batch_size
-        self.batch_gen = batch_gen
+        # self.batch_gen = batch_gen
         self.num_users = num_users
         self.num_movies = num_movies
         self.K = K
         # self.optimizer = optimizer
-        self.save_path = save_path
+        # self.save_path = save_path
 
         # flag que se usa para interrumpir un entrenamiento
         self.parar_entrenamiento = False
@@ -117,13 +117,18 @@ class Movielens_Learner(QObject):
             setattr(self, k, v)
             if self.the_model is not None:
                 if k == "learning_rate":
-                    self.the_model.optimizer.lr.assign(v)
+                    config: dict = self.the_model.optimizer.get_config()
+                    config["learning_rate"] = v
+                    self.the_model.optimizer = self.the_model.optimizer.from_config(config)
+                    # self.the_model.optimizer.lr.assign(v)
                 elif k == "nu":
+                    # TODO: esto también se podría hacer con get_config() / from_config()
                     for emb_name in ("W", "V"):
                         emb: tf.keras.layers.Embedding = self.the_model.get_layer(
                             name=emb_name
                         )
                         emb.embeddings_regularizer = tf.keras.regularizers.l2(v)
+
 
     def get_params(self) -> dict:
         hyperparams_list = [
@@ -154,9 +159,9 @@ class Movielens_Learner(QObject):
         # random.seed(SEED)
         tf.random.set_seed(SEED)
 
-        input_user = tf.keras.Input(shape=(None,), name="usuario")
-        best_movie = tf.keras.Input(shape=(None,), name="mejor película")
-        worst_movie = tf.keras.Input(shape=(None,), name="peor película")
+        input_user = tf.keras.Input(shape=(None,), name="user")
+        best_movie = tf.keras.Input(shape=(None,), name="best_movie")
+        worst_movie = tf.keras.Input(shape=(None,), name="worst_movie")
         emb_reg = tf.keras.regularizers.L2(l2=self.nu)
 
         self.W_embedding = tf.keras.layers.Embedding(
@@ -198,7 +203,6 @@ class Movielens_Learner(QObject):
         self.grafo_eliminado.emit()
 
     def summary(self, *args, **kwargs):
-        assert self.the_model is not None
         return self.the_model.summary(*args, **kwargs)
 
     # def fit(self, *args, **kwargs):
@@ -234,7 +238,8 @@ class Movielens_Learner(QObject):
         if self.the_model is None:
             self._init_graph()
 
-        assert self.the_model is not None
+        if self.the_model is None:
+            raise RuntimeError("Modelo no creado")
 
         # Preparamos el dataset de entrenamiento.
         training_data: tf.data.Dataset = tf.data.Dataset.from_tensor_slices(data)
@@ -251,9 +256,13 @@ class Movielens_Learner(QObject):
             batch_size=validation_data.cardinality()
         )
 
+        # TODO: ESTO DEBE ESTAR MAL !! ¿O NO? ¡¡COMPROBAR!!
         # También separamos los datos del usuario interactivo, si los hay, para ver
         # como se va comportando el modelo atendiendo únicamente a dicho usuario
         data_interactive_user = data[data.user == self.num_users - 1]
+        print(f"self.num_users={self.num_users}")
+        print(f"len(data_interactive_user)={len(data_interactive_user)}")
+
         iu_data: tf.data.Dataset | None = None
         if len(data_interactive_user) > 0:
             iu_data = tf.data.Dataset.from_tensor_slices(data_interactive_user)
@@ -270,12 +279,11 @@ class Movielens_Learner(QObject):
         self.parar_entrenamiento = False
         steps_per_epoch = int(math.ceil(num_examples / self.batch_size))
         for epoch in range(self.num_epochs):
-            print("\nStart of epoch %d" % (epoch,))
-
-            # Iterate over the batches of the dataset.
+            print(f"Epoch {epoch}")
+            # Iterar sobre los batches del conjunto de entrenamiento
             metric_values: dict = {}
             for step, x_batch_train in enumerate(training_data):
-                # print(f"training step {step}")
+                print(f"Training step {step}")
                 batch_size: int = x_batch_train.shape[0]
                 metrics_values = self.the_model.train_step(x_batch_train)
 
@@ -292,7 +300,8 @@ class Movielens_Learner(QObject):
                     # The average loss is an estimate of the loss over the last 'drawevery' batches.
                     msg: str = f"Epoch {epoch+1:3d}, step {step} ->\tError medio (entrenamiento): {avg_loss:.6f}\n"
 
-                    # Reset training metrics at the end of tranining step
+                    # Reset de las métricas de entrenamiento al final de paso de entrenamiento,
+                    # necesario antes de contabilizar la misma métrica para el test y el usuario interactivo
                     for m in self.the_model.metrics:
                         m.reset_states()
 
@@ -374,7 +383,8 @@ class Movielens_Learner(QObject):
         self.entrenamiento_finalizado.emit()
 
     def predict(self, data, **kwargs):
-        assert self.the_model is not None
+        if self.the_model is None:
+            raise RuntimeError("Modelo inexistente")
 
         predictions, _ = self.the_model.predict(
             [data.user, data.movie, data.movie], **kwargs
@@ -384,13 +394,25 @@ class Movielens_Learner(QObject):
         df_result.movie = data.movie
         df_result.predicted_score = predictions
         return df_result
-    
+
     def restore_model(self, path) -> None:
-        self.the_model = tf.keras.models.load_model(path)
+        self.the_model = tf.keras.models.load_model(path, custom_objects={"Movielens_Model": Movielens_Model})
         # TODO:
         # Y ahora tenemos que rellenar correctamente los parámetros:
         # K, learning_rate, nu
         # Los demás forman parte del experimento en cada momento, no del modelo
+        if self.the_model is None:
+            raise RuntimeError("Modelo no cargado por alguna razón")
+        laW : tf.keras.layers.Embedding = self.the_model.get_layer(name="W")
+        self.K = laW.output_dim
+        self.nu = laW.embeddings_regularizer.get_config()["l2"]
+        opt = self.the_model.optimizer
+        self.learning_rate = opt.get_config()["learning_rate"]
+
+
+    def save(self, path:str)->None:
+        if self.the_model is not None:
+            self.the_model.save(path)
 
 
 def load_and_recode_pj(filename, new_user_codes=None, new_movie_codes=None) -> tuple:
@@ -434,27 +456,35 @@ if __name__ == "__main__":
         # alguna vez, pero eso NO QUIERE DECIR que haya ejemplos de test en el conjunto de entrenamiento
         test_pj, _, _ = load_and_recode_pj("pj_test.csv", new_ucodes, new_mcodes)
 
-        batch_size = 512
-        # Prepare the training dataset.
-        train_dataset = tf.data.Dataset.from_tensor_slices(train_pj)
+        # batch_size = 512
+        # # Prepare the training dataset.
+        # train_dataset = tf.data.Dataset.from_tensor_slices(train_pj)
         # train_dataset = train_dataset.shuffle(buffer_size=train_dataset.cardinality()).batch(batch_size)
 
-        # Prepare the validation dataset.
-        test_dataset = tf.data.Dataset.from_tensor_slices(test_pj)
+        # # Prepare the validation dataset.
+        # test_dataset = tf.data.Dataset.from_tensor_slices(test_pj)
         # test_dataset = test_dataset.batch(test_dataset.cardinality())
 
         MV_learner: Movielens_Learner = Movielens_Learner(
-            num_users,
+            num_users+1,  # hay que contar con el interactivo, para cuando lo haya TODO: arreglar esta mierda
             num_movies,
             learning_rate=0.01,
             nu=1e-2,
             K=128,
+            num_epochs=1,
+            batch_size=2000,
         )
 
+        MV_learner._init_graph()
         MV_learner.summary()
 
         tf.keras.utils.plot_model(MV_learner.the_model, to_file="kk.png")
         # print(list(train_dataset.as_numpy_iterator()))
-        MV_learner.myfit(train_dataset, validation_data=test_dataset)
+        MV_learner.fit(data=train_pj, test_data=test_pj)
+        MV_learner.save("./modelin")
+        # MV_learner.fit(data=train_pj, test_data=test_pj)
+        MV_learner.restore_model("./modelin")
+        # tf.keras.utils.plot_model(MV_learner.the_model, to_file="kk-restored.png")
+        MV_learner.fit(data=train_pj, test_data=test_pj)
 
     main()
