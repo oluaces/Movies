@@ -189,8 +189,8 @@ class Movielens_Learner(QObject):
         Vb = V(best_movie)
         Vw = V(worst_movie)
 
-        f_best = tf.keras.layers.Dot(axes=1, normalize=False, name="WuVb")([Wu, Vb])
-        f_worst = tf.keras.layers.Dot(axes=1, normalize=False, name="WuVw")([Wu, Vw])
+        f_best = tf.keras.layers.Dot(axes=2, normalize=False, name="WuVb")([Wu, Vb])
+        f_worst = tf.keras.layers.Dot(axes=2, normalize=False, name="WuVw")([Wu, Vw])
         outputs = [tf.linalg.diag_part(f_best), tf.linalg.diag_part(f_worst)]
 
         self.the_model = Movielens_Model(
