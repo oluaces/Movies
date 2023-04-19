@@ -33,12 +33,12 @@ import datetime
 
 # from movielens_tf2_qt import Movielens_Learner, load_and_recode_pj
 from movielens_keras import Movielens_Learner, load_and_recode_pj
-import ui_movielens
+from movielensgpu_ui import Ui_MainWindow
 
 # import tensorflow as tf
 
 
-class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
+class Movielens_app(QMainWindow, Ui_MainWindow):
     # Creamos la señal para invocar un entrenamiento
     comienza_entrenamiento = pyqtSignal(pd.DataFrame, pd.DataFrame)
 
@@ -113,7 +113,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         )
         self.__hiperparametros_al_gui()
         self._hay_usuario_interactivo = False
-        # print(self._learner.get_params(deep=False))
 
         # Creamos el hilo donde se va a ejecutar el entrenamiento
         self.hilo_entrenamiento = QThread()
@@ -139,6 +138,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         self.le_nu.setText(str(self._learner.nu))
         self.le_drawevery.setText(str(self._learner.drawevery))
         self.cb_semillaaleatoria.setChecked(self._learner.random_seed)
+        self.cb_usoGPU.setChecked(self._learner.use_GPU)
 
     def __conectarWidgets(self):
         # conectamos menu
@@ -184,13 +184,13 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
     @pyqtSlot(name="cargar_modelo")
     def cargar_modelo(self) -> None:
         # Escoger el directorio del que cargar el modelo
-        fd = QFileDialog(self, "Directorio donde está el modelo", ".") #, "*.csv")
+        fd = QFileDialog(self, "Directorio donde está el modelo", ".")  # , "*.csv")
         fd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
         fd.setFileMode(QFileDialog.FileMode.Directory)
         if fd.exec() == QDialog.DialogCode.Accepted:
             path = fd.selectedFiles()[0]
             try:
-                # self._learner.restore_on_created_object(path + "/model.ckpt")
+                self.recoger_hiperparametros()
                 self._learner.restore_model(path)
                 self.__hiperparametros_al_gui()
             except:
@@ -201,7 +201,7 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
     @pyqtSlot(name="guardar_modelo")
     def guardar_modelo(self) -> None:
         # Escoger directorio donde guardar el modelo
-        fd = QFileDialog(self, "Directorio donde está el modelo", ".") #, "*.csv")
+        fd = QFileDialog(self, "Directorio donde está el modelo", ".")  # , "*.csv")
         fd.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
         fd.setFileMode(QFileDialog.FileMode.Directory)
         if fd.exec() == QDialog.DialogCode.Accepted:
@@ -220,16 +220,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         Recoger y validar los campos de entrada de los hiperparámetros
         :return: nada
         """
-        lista_hiperparams = [
-            "K",
-            "nu",
-            "learning_rate",
-            "batch_size",
-            "num_epochs",
-            "drawevery",
-            "random_seed",
-        ]
-        # param_actuales = self._learner.get_params(deep=False)
         param_actuales = self._learner.get_params()
         param_nuevos = {}
         param_del_ui = {}
@@ -240,10 +230,10 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         param_del_ui["nu"] = float(self.le_nu.text())
         param_del_ui["drawevery"] = int(self.le_drawevery.text())
         param_del_ui["random_seed"] = self.cb_semillaaleatoria.isChecked()
+        param_del_ui["use_GPU"] = self.cb_usoGPU.isChecked()
 
-        # print('Params. actuales:', param_actuales)
 
-        for param_nombre in lista_hiperparams:
+        for param_nombre in param_actuales:
             # line_edit = param_del_ui[param_nombre][0]
             valor = param_del_ui[param_nombre]
             # Cambiamos el valor del parámetro por el nuevo valor, que es aceptable, si es diferente
@@ -333,7 +323,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
                     )
 
                     angulo: int = int(math.degrees(math.atan(usuario_y / usuario_x)))
-                    # print(usuario_x, usuario_y, angulo)
                     l = pg.InfiniteLine(
                         angle=90 + angulo, pos=(0, 0), pen=pg.mkPen(color="r", width=4)
                     )
@@ -347,7 +336,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
 
     # @pyqtSlot(QtCore.QObject, QtCore.QObject, name='dialgoconio')
     def mostrar_titulos_en_consola(self, pdi, l):
-        # print('Lista de longitud', len(l))
         lista_de_puntos = []
         for obj in l:
             obj_x = obj.pos().x()
@@ -399,7 +387,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
                 name="Error usuario",
                 clear=False,
             )
-        # print('He recibido datos:', gs, avg_error)
 
     def cargar_peliculas(self):
         movies = pd.read_csv("movies.csv")
@@ -448,12 +435,8 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
                     for i in range(len(puntuaciones)):
                         pelicula = puntuaciones.iloc[i].movie
                         puntos = puntuaciones.iloc[i].score
-                        # print(pelicula, puntos)
-                        # it = self.tableWidget.item(pelicula, 0)
-                        # it.setText(str(puntos))
                         it = self.tableWidget.cellWidget(pelicula, 0)
                         it.setCurrentText(str(puntos))
-                    # QMessageBox.information(self, 'Carga de puntuaciones', 'Puntuaciones cargadas')
                 except:
                     QMessageBox.warning(
                         self, "Carga de puntuaciones", "No ha sido posible la carga"
@@ -521,7 +504,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
             datos = pd.DataFrame(columns=["movie", "score"])
             datos.movie = peliculas
             datos.score = puntuaciones
-            # print(datos)
             fd = QFileDialog(self, "Fichero de puntuaciones", ".", "*.csv")
             fd.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
             if fd.exec() == QDialog.DialogCode.Accepted:
@@ -614,6 +596,12 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         # y lo mismo para exportar los embeddings
         self.actionExportar.setEnabled(True)
 
+        # EXPERIMENTAL:
+        # deshabilitamos el selector de GPU y no se puede volver a cambiar nunca
+        # su valor, es necesario salir de la aplicación y volver a entrar
+        self.cb_usoGPU.setEnabled(False)
+
+
     @pyqtSlot(name="habilitar_widgets_para_entrenar")
     def habilitar_widgets_para_entrenar(self):
         self.progressBar.setRange(0, 100)  # Va a ir en porcentaje
@@ -638,15 +626,17 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
             self.pb_Aprender,
             self.menuBar,
             self.tableWidget,
+            # self.cb_usoGPU,  # se deshabilita al comenzar el entrenamiento y nunca se vuelve a habilitar
         ]
 
         for w in lista_widgets:
             w.setEnabled(estado)
 
-        self.pb_Parar.setEnabled(
-            not estado
-        )  # Este botón va al revés que todos lo demás
-        self.repaint()  # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
+        # Este botón va al revés que todos lo demás
+        self.pb_Parar.setEnabled(not estado)
+
+        # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
+        self.repaint()
 
     def _predicciones_para_usuario(self):
         if self._hay_usuario_interactivo:
@@ -728,7 +718,6 @@ class Movielens_app(QMainWindow, ui_movielens.Ui_MainWindow):
         # usuario y añadirlos al conjunto de entrenamiento
         # Datos del usuario interactivo, si los hay
         train_pj_interactive = self._crea_pjs_de_usuario()
-        # print(train_pj_interactive)
         if len(train_pj_interactive) > 0:
             self._hay_usuario_interactivo = True
             # Se concatenan sus preferencias al conjunto de entrenamiento

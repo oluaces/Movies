@@ -132,7 +132,7 @@
    <widget class="QWidget" name="formLayoutWidget_3">
     <property name="geometry">
      <rect>
-      <x>0</x>
+      <x>10</x>
       <y>440</y>
       <width>141</width>
       <height>85</height>
@@ -195,108 +195,38 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>290</y>
-      <width>151</width>
-      <height>112</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="layout_fijos">
-     <item>
-      <widget class="QCheckBox" name="cb_semillaaleatoria">
-       <property name="toolTip">
-        <string>La generación de aleatorios comienza con semilla fija o variable</string>
-       </property>
-       <property name="text">
-        <string>Semilla aleatoria</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QFormLayout" name="fl_fijos_texto">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>K</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="le_K">
-         <property name="toolTip">
-          <string>Dimensiones del espacio de proyección (embedding)</string>
-         </property>
-         <property name="toolTipDuration">
-          <number>5</number>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>learn. rate</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="le_learningrate">
-         <property name="toolTip">
-          <string>Factor de aprendizaje</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>nu</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="le_nu">
-         <property name="toolTip">
-          <string>Factor de regularización</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </widget>
    <widget class="QWidget" name="verticalLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>561</y>
-      <width>151</width>
-      <height>218</height>
+      <x>10</x>
+      <y>530</y>
+      <width>141</width>
+      <height>221</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QCheckBox" name="cb_usoGPU">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#ff2600;&quot;&gt;EXPERIMENTAL:&lt;/span&gt; Esta opción sólo se puede seleccionar &lt;span style=&quot; font-style:italic;&quot;&gt;antes de comenzar el entrenamiento por primera vez&lt;/span&gt;. Si deseas modificar su valor una vez comenzado el entrenamiento, debes:&lt;br/&gt;1. Guardar el modelo entrenado&lt;br/&gt;2. Salir de la aplicación&lt;br/&gt;3. Arrarcar de nuevo la aplicación&lt;br/&gt;4. Seleccionar si deseas usar o no GPU&lt;br/&gt;5. Cargar modelo entrenado&lt;br/&gt;6. Continuar el entrenamiento&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="text">
+        <string>Usar GPU</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+       <property name="tristate">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QPushButton" name="pb_Aprender">
        <property name="toolTip">
@@ -354,26 +284,13 @@
       </widget>
      </item>
      <item>
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Expanding</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QPushButton" name="pb_Olvidar">
        <property name="font">
         <font>
+         <family>Helvetica</family>
+         <weight>75</weight>
          <italic>true</italic>
+         <bold>true</bold>
         </font>
        </property>
        <property name="toolTip">
@@ -386,6 +303,100 @@
      </item>
     </layout>
    </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>320</y>
+      <width>141</width>
+      <height>85</height>
+     </rect>
+    </property>
+    <layout class="QFormLayout" name="fl_fijos_texto">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>K</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="le_K">
+       <property name="toolTip">
+        <string>Dimensiones del espacio de proyección (embedding)</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>5</number>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>learn. rate</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="le_learningrate">
+       <property name="toolTip">
+        <string>Factor de aprendizaje</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>nu</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="le_nu">
+       <property name="toolTip">
+        <string>Factor de regularización</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QCheckBox" name="cb_semillaaleatoria">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>290</y>
+      <width>131</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>La generación de aleatorios comienza con semilla fija o variable</string>
+    </property>
+    <property name="text">
+     <string>Semilla aleatoria</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -393,7 +404,7 @@
      <x>0</x>
      <y>0</y>
      <width>1210</width>
-     <height>43</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

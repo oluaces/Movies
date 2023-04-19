@@ -24,7 +24,7 @@ class Movielens_Model(tf.keras.Model):
         u, b, w = data[:, 0:1], data[:, 1:2], data[:, 2:3]
 
         with tf.GradientTape() as tape:
-            y_best, y_worst = self([u, b, w], training=True) # type: ignore
+            y_best, y_worst = self([u, b, w], training=True)  # type: ignore
             # loss = self.compiled_loss(y_best, y_worst)
             loss = tf.math.maximum(0.0, 1.0 - y_best + y_worst)
 
@@ -45,7 +45,7 @@ class Movielens_Model(tf.keras.Model):
 
     def test_step(self, data):
         u, b, w = data[:, 0:1], data[:, 1:2], data[:, 2:3]
-        y_best, y_worst = self([u, b, w], training=False) # type: ignore
+        y_best, y_worst = self([u, b, w], training=False)  # type: ignore
         loss = tf.math.maximum(0.0, 1.0 - y_best + y_worst)
         self.loss_tracker.update_state(loss)
 
@@ -77,6 +77,7 @@ class Movielens_Learner(QObject):
         random_seed=True,
         # optimizer="Adam",
         # save_path="movielens_model",
+        GPU=False,
     ) -> None:
         super().__init__()
 
@@ -101,30 +102,31 @@ class Movielens_Learner(QObject):
 
         # # La creación del grafo se deja para la primera vez que se intente entrenar el sistema
         self.the_model: Movielens_Model | None = None
-        
-        # Desabilitar GPU, en Mac M1/M2 no va fino :(
-        # tf.config.set_visible_devices([], "GPU")
+
+        self.use_GPU: bool = GPU
 
     def set_params(self, **params) -> None:
         # K no va a poder ser modificada, sólo se permite desde la interfaz gráfica
         # cuando aún no se ha creado el modelo, así que sólo me tengo que preocupar
         # de propagar hacia el modelo existente los cambios en learning_rate y nu
+        print(f"Params: {params}")
         for k, v in params.items():
             setattr(self, k, v)
             if self.the_model is not None:
                 if k == "learning_rate":
                     config: dict = self.the_model.optimizer.get_config()
                     config["learning_rate"] = v
-                    self.the_model.optimizer = self.the_model.optimizer.from_config(config)
+                    self.the_model.optimizer = self.the_model.optimizer.from_config(
+                        config
+                    )
                     # self.the_model.optimizer.lr.assign(v)
                 elif k == "nu":
-                    # TODO: esto también se podría hacer con get_config() / from_config()
+                    # Esto quizá también se podría hacer con get_config() / from_config()
                     for emb_name in ("W", "V"):
                         emb: tf.keras.layers.Embedding = self.the_model.get_layer(
                             name=emb_name
                         )
                         emb.embeddings_regularizer = tf.keras.regularizers.l2(v)
-
 
     def get_params(self) -> dict:
         hyperparams_list = [
@@ -135,6 +137,7 @@ class Movielens_Learner(QObject):
             "num_epochs",
             "drawevery",
             "random_seed",
+            "use_GPU",
         ]
 
         params_actuales = {}
@@ -146,19 +149,27 @@ class Movielens_Learner(QObject):
     @property
     def W_embedding(self) -> tf.keras.layers.Embedding:
         return self.the_model.get_layer(name="W")
-    
+
     @property
     def V_embedding(self) -> tf.keras.layers.Embedding:
         return self.the_model.get_layer(name="V")
-    
 
-    
     def _init_graph(self) -> None:
         # Semilla de generador de aleatorios
         if self.random_seed:
             SEED = int(time())
         else:
             SEED = 2032
+
+        # Desabilitar GPU?
+        # physical_devices = tf.config.list_physical_devices("GPU")
+        # if self.use_GPU:
+        #     tf.config.set_visible_devices(physical_devices, "GPU")
+        # else:
+        #     tf.config.set_visible_devices([], "GPU")
+
+        print("Physical devices:\n", tf.config.list_physical_devices())
+        print("Logical devices:\n", tf.config.list_logical_devices())
 
         # # tf.set_random_seed(SEED)
         # tf.compat.v1.random.set_random_seed(SEED)
@@ -234,7 +245,16 @@ class Movielens_Learner(QObject):
     def stop_fit(self) -> None:
         self.parar_entrenamiento = True
 
-    def fit(
+    @pyqtSlot(pd.DataFrame, pd.DataFrame, name="fit")
+    def fit(self, *args, **kwargs) -> None:
+        if self.use_GPU:
+            with tf.device("/device:GPU:0"):
+                self.fit_aux(*args, **kwargs)
+        else:
+            with tf.device("/device:CPU:0"):
+                self.fit_aux(*args, **kwargs)
+
+    def fit_aux(
         self,
         data: pd.DataFrame,
         test_data: pd.DataFrame,
@@ -262,12 +282,9 @@ class Movielens_Learner(QObject):
             batch_size=validation_data.cardinality()
         )
 
-        # TODO: ESTO DEBE ESTAR MAL !! ¿O NO? ¡¡COMPROBAR!!
         # También separamos los datos del usuario interactivo, si los hay, para ver
         # como se va comportando el modelo atendiendo únicamente a dicho usuario
         data_interactive_user = data[data.user == self.num_users - 1]
-        print(f"self.num_users={self.num_users}")
-        print(f"len(data_interactive_user)={len(data_interactive_user)}")
 
         iu_data: tf.data.Dataset | None = None
         if len(data_interactive_user) > 0:
@@ -285,7 +302,6 @@ class Movielens_Learner(QObject):
         self.parar_entrenamiento = False
         steps_per_epoch = int(math.ceil(num_examples / self.batch_size))
         for epoch in range(self.num_epochs):
-            print(f"Epoch {epoch}")
             # Iterar sobre los batches del conjunto de entrenamiento
             metric_values: dict = {}
             for step, x_batch_train in enumerate(training_data):
@@ -402,24 +418,24 @@ class Movielens_Learner(QObject):
         return df_result
 
     def restore_model(self, path) -> None:
-        self.the_model = tf.keras.models.load_model(path, custom_objects={"Movielens_Model": Movielens_Model})
+        self.the_model = tf.keras.models.load_model(
+            path, custom_objects={"Movielens_Model": Movielens_Model}
+        )
         # Y ahora tenemos que rellenar correctamente los parámetros K y nu de Movielens_Learner,
         # los demás forman parte del experimento en cada momento, no del modelo
         if self.the_model is None:
             raise RuntimeError("Modelo no cargado por alguna razón")
-        
-        laW : tf.keras.layers.Embedding = self.the_model.get_layer(name="W")
+
+        laW: tf.keras.layers.Embedding = self.the_model.get_layer(name="W")
         self.K = laW.output_dim
         self.nu = laW.embeddings_regularizer.get_config()["l2"]
         opt = self.the_model.optimizer
         self.learning_rate = opt.get_config()["learning_rate"]
-        # Y emitimos que ya hay modelo: se podrá grabar y exportar embeddings, 
+        # Y emitimos que ya hay modelo: se podrá grabar y exportar embeddings,
         # además de seguir entrenando.
         self.grafo_construido.emit()
 
-
-
-    def save(self, path:str)->None:
+    def save(self, path: str) -> None:
         if self.the_model is not None:
             self.the_model.save(path)
 
@@ -447,53 +463,3 @@ def load_and_recode_pj(filename, new_user_codes=None, new_movie_codes=None) -> t
 
     return (pj, new_user_codes, new_movie_codes)
     # return (pj, len(set_of_users), len(set_of_movies))
-
-
-if __name__ == "__main__":
-
-    def main():
-        # Desabilitar GPU, en Mac M1/M2 no va fino :(
-        tf.config.set_visible_devices([], "GPU")
-
-        # Los conjuntos de entrenamiento y test van "atornillados" en el código, deben ser
-        # pj_train.csv y pj_test.csv respectivamente
-        train_pj, new_ucodes, new_mcodes = load_and_recode_pj("pj_train.csv")
-        num_users = len(new_ucodes)
-        num_movies = len(new_mcodes)
-        # Los ejemplos de test se recodifican utilizando la codificación obtenida sobre los de entrenamiento, por
-        # lo que es necesario que en el conjunto de entrenamiento aparezcan todos los usuarios y todas las películas
-        # alguna vez, pero eso NO QUIERE DECIR que haya ejemplos de test en el conjunto de entrenamiento
-        test_pj, _, _ = load_and_recode_pj("pj_test.csv", new_ucodes, new_mcodes)
-
-        # batch_size = 512
-        # # Prepare the training dataset.
-        # train_dataset = tf.data.Dataset.from_tensor_slices(train_pj)
-        # train_dataset = train_dataset.shuffle(buffer_size=train_dataset.cardinality()).batch(batch_size)
-
-        # # Prepare the validation dataset.
-        # test_dataset = tf.data.Dataset.from_tensor_slices(test_pj)
-        # test_dataset = test_dataset.batch(test_dataset.cardinality())
-
-        MV_learner: Movielens_Learner = Movielens_Learner(
-            num_users+1,  # hay que contar con el interactivo, para cuando lo haya
-            num_movies,
-            learning_rate=0.01,
-            nu=1e-2,
-            K=128,
-            num_epochs=1,
-            batch_size=2000,
-        )
-
-        MV_learner._init_graph()
-        MV_learner.summary()
-
-        tf.keras.utils.plot_model(MV_learner.the_model, to_file="kk.png")
-        # print(list(train_dataset.as_numpy_iterator()))
-        MV_learner.fit(data=train_pj, test_data=test_pj)
-        MV_learner.save("./modelin")
-        # MV_learner.fit(data=train_pj, test_data=test_pj)
-        MV_learner.restore_model("./modelin")
-        # tf.keras.utils.plot_model(MV_learner.the_model, to_file="kk-restored.png")
-        MV_learner.fit(data=train_pj, test_data=test_pj)
-
-    main()
