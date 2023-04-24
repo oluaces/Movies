@@ -247,8 +247,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         if len(param_nuevos) > 0:
             self._learner.set_params(**param_nuevos)
 
-    # @pyqtSlot(name="redibujar_peliculas")
-    # def redibujar_peliculas(self):
     @pyqtSlot(name="dibujar_peliculas")
     def dibujar_peliculas(self) -> None:
         if self._learner.the_model is None:
@@ -256,7 +254,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
 
         peliculas_emb: np.ndarray = self._learner.V_weights
         usuarios_emb: np.ndarray = self._learner.W_weights
-        # peliculas_emb, usuarios_emb = self._learner.getEmbeddings()
 
         texto_cb_X: str = self.cb_X.currentText()
         texto_cb_Y: str = self.cb_Y.currentText()
@@ -347,7 +344,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
     #     self.usuarios_emb = usuarios_emb
     #     self.redibujar_peliculas()
 
-    # @pyqtSlot(QtCore.QObject, QtCore.QObject, name='dialgoconio')
+    # @pyqtSlot(pg.graphicsItems.PlotDataItem.PlotDataItem, np.ndarray, name="mostrar_titulos_en_consola")
     def mostrar_titulos_en_consola(self, pdi, l):
         lista_de_puntos = []
         for obj in l:
@@ -361,8 +358,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 self.pconsola("--> %s\n" % self.peliculas[i])
         self.pconsola("\n")
 
-    # @pyqtSlot(int, float, float, float, name="dibujar_errores")
-    # def dibujar_errores(self, gs, avg_error, error_test, error_iu):
     @pyqtSlot(float, float, float, name="dibujar_errores")
     def dibujar_errores(self, avg_error, error_test, error_iu):
         pen_train = pg.mkPen("k", width=2)
@@ -371,9 +366,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
 
         # Leyenda
         self.graphicsView_errores.addLegend()
-
-        # Lista de coordenadas X
-        # self.global_step_list.append(gs)
 
         # Lista de coordenadas Y del error de entrenamiento
         self.avg_error_list.append(avg_error)
@@ -427,13 +419,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
             self.tableWidget.setItem(fila, 2, item)
 
-    # def mas_datos(self):
-    #     filas = self.tableWidget.rowCount()
-    #     self.tableWidget.setRowCount(filas+1)
-    #     a_new_number = random()*50
-    #     self.tableWidget.setItem(filas, 0, QTableWidgetItem(str(a_new_number)))
-    #     self.data.append(a_new_number)
-    #     self.graphicsView_pelis.plot(self.data, pen='k')
     @pyqtSlot(name="cargar_puntuaciones")
     def cargar_puntuaciones(self):
         # Leer datos de las valoraciones de las películas
@@ -770,9 +755,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.pconsola("--- Interrupción de entrenamiento solicitada ---\n")
         self._learner.stop_fit()
 
-    # def test(self):
-    #     self._learner.predict(self._test_pj)
 
+    @pyqtSlot(name="olvidar")
     def olvidar(self):
         idButton = QMessageBox.question(
             self,
@@ -793,8 +777,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.avg_error_list = []
             self.avg_error_test_list = []
             self.avg_error_iu_list = []
-            # self.peliculas_emb = None
-            # self.usuarios_emb = None
 
             # No hace falta borrar gráficos y consola de mensajes y combos de pintar películas, ya lo
             # hacemos conectando la señal emitida del botón a los .clear correspondientes
