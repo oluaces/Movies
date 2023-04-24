@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import math
 
+
+SIN_PUNTUACIÓN: str = "-X-"
+
 # import matplotlib.pyplot as plt
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
@@ -55,8 +58,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         )
 
         self.peliculas = []  # aquí guardaré los nombres de las películas
-        self.peliculas_emb = None
-        self.usuarios_emb = None
+        # self.peliculas_emb = None
+        # self.usuarios_emb = None
 
         # # Para ir almacenando los datos que van a ser dibujados
         self.global_step_list = []  # global step (iteración)
@@ -74,17 +77,17 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.num_users = len(self._new_ucodes)
         self.num_movies = len(self._new_mcodes)
 
-        # validators todo: no se usan bien, habría que comprobar cosas...
-        self.le_K.setValidator(QIntValidator(2, 1000))
-        self.le_minibatch.setValidator(QIntValidator(1, len(self._train_pj) // 10))
-        learningrate_validator = QDoubleValidator(1e-6, 1.0, 10)
-        learningrate_validator.setNotation(QDoubleValidator.Notation.ScientificNotation)
+        # validators TODO: no consigo que funcionen bien...
+        # self.le_K.setValidator(QIntValidator(2, 1000))
+        # self.le_minibatch.setValidator(QIntValidator(1, len(self._train_pj) // 10))
+        # learningrate_validator = QDoubleValidator(1e-8, 1.0, 10)
+        # learningrate_validator.setNotation(QDoubleValidator.Notation.ScientificNotation)
         # self.le_learningrate.setValidator(learningrate_validator)
-        nu_validator = QDoubleValidator(0, 1.0, 10)
-        nu_validator.setNotation(QDoubleValidator.Notation.ScientificNotation)
+        # nu_validator = QDoubleValidator(0, 1.0, 10)
+        # nu_validator.setNotation(QDoubleValidator.Notation.ScientificNotation)
         # self.le_nu.setValidator(nu_validator)
-        self.le_epochs.setValidator(QIntValidator(1, 100))
-        self.le_drawevery.setValidator(QIntValidator(1, 10))
+        # self.le_epochs.setValidator(QIntValidator(1, 10000))
+        # self.le_drawevery.setValidator(QIntValidator(1, 10))
 
         # construimos la tabla de películas para que el usuario pueda puntuar
         self.tableWidget.setColumnCount(3)
@@ -109,7 +112,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         )
         # Aquí va el sistema de aprendizaje
         self._learner = Movielens_Learner(
-            num_users=self.num_users + 1, num_movies=self.num_movies, drawevery=1
+            num_users=self.num_users + 1,
+            num_movies=self.num_movies,
         )
         self.__hiperparametros_al_gui()
         self._hay_usuario_interactivo = False
@@ -119,6 +123,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self._learner.moveToThread(self.hilo_entrenamiento)
         self.hilo_entrenamiento.start()
 
+        self.habilitar_widgets_para_entrenar()
         # Conectar signals/slots
         self.__conectarWidgets()
 
@@ -136,7 +141,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.le_minibatch.setText(str(self._learner.batch_size))
         self.le_epochs.setText(str(self._learner.num_epochs))
         self.le_nu.setText(str(self._learner.nu))
-        self.le_drawevery.setText(str(self._learner.drawevery))
+        # self.le_drawevery.setText(str(self._learner.drawevery))
         self.cb_semillaaleatoria.setChecked(self._learner.random_seed)
         self.cb_usoGPU.setChecked(self._learner.use_GPU)
 
@@ -162,12 +167,11 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self._learner.entrenamiento_finalizado.connect(
             self.habilitar_widgets_para_entrenar
         )
-        # self._learner.entrenamiento_finalizado.connect(self._learner.predict_iu)
         self._learner.entrenamiento_finalizado.connect(self.predecir_para_usuario)
         self._learner.computed_avg_loss.connect(self.dibujar_errores)
         self._learner.computed_embeddings.connect(self.dibujar_peliculas)
-        self.cb_X.currentTextChanged.connect(self.redibujar_peliculas)
-        self.cb_Y.currentTextChanged.connect(self.redibujar_peliculas)
+        self.cb_X.currentTextChanged.connect(self.dibujar_peliculas)
+        self.cb_Y.currentTextChanged.connect(self.dibujar_peliculas)
 
         self._learner.grafo_construido.connect(self.deshabilitar_cambio_hparams)
         self._learner.grafo_eliminado.connect(self.habilitar_cambio_hparams)
@@ -191,7 +195,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             path = fd.selectedFiles()[0]
             try:
                 self.recoger_hiperparametros()
-                self._learner.restore_model(path)
+                self._learner.restore_model(path + "/ml")
                 self.__hiperparametros_al_gui()
             except:
                 QMessageBox.warning(
@@ -208,7 +212,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             path = fd.selectedFiles()[0]
 
             try:
-                self._learner.save(path)
+                self._learner.save(path + "/ml")
             except:
                 QMessageBox.warning(
                     self, "Guardado de modelo", "No ha sido posible guardar el modelo"
@@ -228,31 +232,40 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         param_del_ui["learning_rate"] = float(self.le_learningrate.text())
         param_del_ui["batch_size"] = int(self.le_minibatch.text())
         param_del_ui["nu"] = float(self.le_nu.text())
-        param_del_ui["drawevery"] = int(self.le_drawevery.text())
+        # param_del_ui["drawevery"] = int(self.le_drawevery.text())
         param_del_ui["random_seed"] = self.cb_semillaaleatoria.isChecked()
         param_del_ui["use_GPU"] = self.cb_usoGPU.isChecked()
 
-
         for param_nombre in param_actuales:
             # line_edit = param_del_ui[param_nombre][0]
-            valor = param_del_ui[param_nombre]
-            # Cambiamos el valor del parámetro por el nuevo valor, que es aceptable, si es diferente
-            if param_actuales[param_nombre] != valor:
-                param_nuevos[param_nombre] = valor
+            valor = param_del_ui.get(param_nombre, None)
+            if valor is not None:
+                # Cambiamos el valor del parámetro por el nuevo valor, que es aceptable, si es diferente
+                if param_actuales[param_nombre] != valor:
+                    param_nuevos[param_nombre] = valor
 
         if len(param_nuevos) > 0:
             self._learner.set_params(**param_nuevos)
 
-    @pyqtSlot(name="redibujar_peliculas")
-    def redibujar_peliculas(self):
+    # @pyqtSlot(name="redibujar_peliculas")
+    # def redibujar_peliculas(self):
+    @pyqtSlot(name="dibujar_peliculas")
+    def dibujar_peliculas(self) -> None:
+        if self._learner.the_model is None:
+            return
+
+        peliculas_emb: np.ndarray = self._learner.V_weights
+        usuarios_emb: np.ndarray = self._learner.W_weights
+        # peliculas_emb, usuarios_emb = self._learner.getEmbeddings()
+
         texto_cb_X: str = self.cb_X.currentText()
         texto_cb_Y: str = self.cb_Y.currentText()
-        if texto_cb_X != "" and texto_cb_Y != "" and self.peliculas_emb is not None:
+        if texto_cb_X != "" and texto_cb_Y != "" and peliculas_emb is not None:
             # Hay que leer las variables (columnas de peliculas_emb) elegidas en los combos de los ejes
             eje_x: int = int(texto_cb_X) - 1
             eje_y: int = int(texto_cb_Y) - 1
-            peliculas_emb_x: np.ndarray = self.peliculas_emb[eje_x, :]
-            peliculas_emb_y: np.ndarray = self.peliculas_emb[eje_y, :]
+            peliculas_emb_x: np.ndarray = peliculas_emb[eje_x, :]
+            peliculas_emb_y: np.ndarray = peliculas_emb[eje_y, :]
             # p = pg.mkPen('k', width=2)
 
             pdi = self.graphicsView_pelis.plot(
@@ -270,7 +283,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             # izquierda
             max_length: int = 40
             min_x: float = peliculas_emb_x.min()
-            index_min_x: int = peliculas_emb_x.argmin()
+            index_min_x: int = int(peliculas_emb_x.argmin())
             titulo: str = self.peliculas[index_min_x]
             titulo = titulo[:max_length]
             etiqueta: pg.TextItem = pg.TextItem(text=titulo, color="k")
@@ -278,7 +291,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.graphicsView_pelis.addItem(etiqueta)
             # derecha
             max_x: float = peliculas_emb_x.max()
-            index_max_x: int = peliculas_emb_x.argmax()
+            index_max_x: int = int(peliculas_emb_x.argmax())
             titulo = self.peliculas[index_max_x]
             titulo = titulo[:max_length]
             etiqueta = pg.TextItem(text=titulo, color="k")
@@ -286,7 +299,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.graphicsView_pelis.addItem(etiqueta)
             # abajo
             min_y: float = peliculas_emb_y.min()
-            index_min_y: int = peliculas_emb_y.argmin()
+            index_min_y: int = int(peliculas_emb_y.argmin())
             titulo = self.peliculas[index_min_y]
             titulo = titulo[:max_length]
             etiqueta = pg.TextItem(text=titulo, color="k")
@@ -294,7 +307,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.graphicsView_pelis.addItem(etiqueta)
             # arriba
             max_y: float = peliculas_emb_y.max()
-            index_max_y: int = peliculas_emb_y.argmax()
+            index_max_y: int = int(peliculas_emb_y.argmax())
             titulo = self.peliculas[index_max_y]
             titulo = titulo[:max_length]
             etiqueta = pg.TextItem(text=titulo, color="k")
@@ -303,8 +316,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
 
             if self._hay_usuario_interactivo:
                 if self._learner.K == 2:
-                    usuario_x = self.usuarios_emb[eje_x]
-                    usuario_y = self.usuarios_emb[eje_y]
+                    usuario_x = usuarios_emb[eje_x]
+                    usuario_y = usuarios_emb[eje_y]
 
                     self.graphicsView_pelis.plot(
                         {"x": [usuario_x], "y": [usuario_y]},
@@ -328,11 +341,11 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                     )
                     self.graphicsView_pelis.addItem(l)
 
-    @pyqtSlot(np.ndarray, np.ndarray, name="dibujar_peliculas")
-    def dibujar_peliculas(self, usuarios_emb, peliculas_emb):
-        self.peliculas_emb = peliculas_emb
-        self.usuarios_emb = usuarios_emb
-        self.redibujar_peliculas()
+    # @pyqtSlot(np.ndarray, np.ndarray, name="dibujar_peliculas")
+    # def dibujar_peliculas(self, usuarios_emb, peliculas_emb):
+    #     self.peliculas_emb = peliculas_emb
+    #     self.usuarios_emb = usuarios_emb
+    #     self.redibujar_peliculas()
 
     # @pyqtSlot(QtCore.QObject, QtCore.QObject, name='dialgoconio')
     def mostrar_titulos_en_consola(self, pdi, l):
@@ -348,8 +361,10 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 self.pconsola("--> %s\n" % self.peliculas[i])
         self.pconsola("\n")
 
-    @pyqtSlot(int, float, float, float, name="dibujar_errores")
-    def dibujar_errores(self, gs, avg_error, error_test, error_iu):
+    # @pyqtSlot(int, float, float, float, name="dibujar_errores")
+    # def dibujar_errores(self, gs, avg_error, error_test, error_iu):
+    @pyqtSlot(float, float, float, name="dibujar_errores")
+    def dibujar_errores(self, avg_error, error_test, error_iu):
         pen_train = pg.mkPen("k", width=2)
         pen_test = pg.mkPen("r", width=2)
         pen_user = pg.mkPen("b", width=2)
@@ -358,9 +373,13 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.graphicsView_errores.addLegend()
 
         # Lista de coordenadas X
-        self.global_step_list.append(gs)
+        # self.global_step_list.append(gs)
+
         # Lista de coordenadas Y del error de entrenamiento
         self.avg_error_list.append(avg_error)
+        # Lista de coordenadas X
+        self.global_step_list = list(range(len(self.avg_error_list)))
+
         self.graphicsView_errores.plot(
             self.global_step_list,
             self.avg_error_list,
@@ -404,7 +423,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)  # pero no editable
             self.tableWidget.setItem(fila, 1, item)
             # Columna de valoraciones (para cuando el modelo esté entrenado)
-            item = QTableWidgetItem("--")
+            item = QTableWidgetItem(SIN_PUNTUACIÓN)
             item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
             self.tableWidget.setItem(fila, 2, item)
 
@@ -443,12 +462,14 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                     )
 
     @pyqtSlot(name="exportar")
-    def exportar(self):
+    def exportar(self) -> None:
         """
         Exporta la representación de los usuarios y películas a formato csv
         :return: Nada
         """
-        usuarios, peliculas = self._learner.getEmbeddings()
+        # usuarios, películas = self._learner.getEmbeddings()
+        usuarios = self._learner.W_weights
+        películas = self._learner.V_weights
         if usuarios is not None:
             # Convierto las matrices en DataFrames
             usuarios_df = pd.DataFrame(
@@ -456,8 +477,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 columns=["U" + str(i) for i in range(1, 1 + usuarios.shape[1])],
             )
             peliculas_df = pd.DataFrame(
-                peliculas,
-                columns=["M" + str(i) for i in range(1, 1 + peliculas.shape[1])],
+                películas,
+                columns=["M" + str(i) for i in range(1, 1 + películas.shape[1])],
             )
 
             # Escoger directorio donde guardar el modelo
@@ -533,6 +554,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 # it.setText('')
                 it = self.tableWidget.cellWidget(f, 0)
                 it.setCurrentText("")
+            # y borramos también las valoraciones, no hay usuario interactivo
+            self.borrar_predicciones()
 
     def _crea_pjs_de_usuario(self):
         """
@@ -586,6 +609,10 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.actionGuardar_modelo_entrenado.setEnabled(False)
         # y lo mismo para exportar los embeddings
         self.actionExportar.setEnabled(False)
+        # EXPERIMENTAL:
+        # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
+        # es decir "olvidar" lo aprendido
+        self.cb_usoGPU.setEnabled(True)
 
     @pyqtSlot(name="deshabilitar_cambio_hparams")
     def deshabilitar_cambio_hparams(self):
@@ -597,15 +624,12 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.actionExportar.setEnabled(True)
 
         # EXPERIMENTAL:
-        # deshabilitamos el selector de GPU y no se puede volver a cambiar nunca
-        # su valor, es necesario salir de la aplicación y volver a entrar
+        # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
+        # es decir "olvidar" lo aprendido
         self.cb_usoGPU.setEnabled(False)
-
 
     @pyqtSlot(name="habilitar_widgets_para_entrenar")
     def habilitar_widgets_para_entrenar(self):
-        self.progressBar.setRange(0, 100)  # Va a ir en porcentaje
-        self.progressBar.reset()
         self.widgets_habilitados(True)
 
     @pyqtSlot(name="deshabilitar_widgets_para_entrenar")
@@ -618,7 +642,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         lista_widgets = [
             self.le_epochs,
             self.le_minibatch,
-            self.le_drawevery,
+            # self.le_drawevery,
             self.le_learningrate,
             self.le_nu,
             self.pb_Olvidar,
@@ -655,7 +679,10 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
     @pyqtSlot(name="predecir_para_usuario")
     def predecir_para_usuario(self):
         results = self._predicciones_para_usuario()
-        if results is not None:
+        if results is None:
+            # Por si había predicciones de algún entrenamiento previo, las borramos
+            self.borrar_predicciones()
+        else:
             # Mostramos las predicciones en la tabla de películas
             self.mostrar_predicciones(results)
             # Y mostramos las top/bottom 'n' películas en orden
@@ -678,9 +705,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             # saltando aquellas que han sido puntuadas, hasta llegar a 'n' recomendaciones
             filas = self.tableWidget.rowCount()
 
-            pelis_valoradas = (
-                []
-            )  # Lista de índices de películas valoradas por el usuario
+            # Lista de índices de películas valoradas por el usuario
+            pelis_valoradas = []
             for f in range(filas):
                 texto = self.tableWidget.cellWidget(f, 0).currentText()
                 if len(texto) > 0:
@@ -710,6 +736,10 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 self.cb_Y.addItem(str(i + 1))
             self.cb_X.setCurrentText(self.cb_X.itemText(0))
             self.cb_Y.setCurrentText(self.cb_X.itemText(1))
+
+        # Configuramos la barra de progreso adecuadamente
+        self.progressBar.setRange(0, self._learner.num_epochs)  # Va a ir en porcentaje
+        self.progressBar.reset()
 
         # Construir el PlotDataItem para dibujar las películas, y las etiquetas necesarias
         # construir_pdi_peliculas()
@@ -757,14 +787,14 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.cb_Y.clear()
             self._learner.reset_graph()  # reset_model()
             # ... y borramos la columna de valoraciones, ya que no hay modelo
-            self.borrar_valoraciones()
+            self.borrar_predicciones()
             # ... borramos los datos producidos durante el entde error de entrenamiento
             self.global_step_list = []
             self.avg_error_list = []
             self.avg_error_test_list = []
             self.avg_error_iu_list = []
-            self.peliculas_emb = None
-            self.usuarios_emb = None
+            # self.peliculas_emb = None
+            # self.usuarios_emb = None
 
             # No hace falta borrar gráficos y consola de mensajes y combos de pintar películas, ya lo
             # hacemos conectando la señal emitida del botón a los .clear correspondientes
@@ -775,11 +805,11 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 "MODELO BORRADO!!\n\nHay que reentrenar el sistema...",
             )
 
-    def borrar_valoraciones(self):
+    def borrar_predicciones(self):
         filas = self.tableWidget.rowCount()
         for i in range(filas):
             it = self.tableWidget.item(i, 2)
-            it.setText("-x-")
+            it.setText(SIN_PUNTUACIÓN)
 
 
 if __name__ == "__main__":

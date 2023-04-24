@@ -135,7 +135,7 @@
       <x>10</x>
       <y>440</y>
       <width>141</width>
-      <height>85</height>
+      <height>61</height>
      </rect>
     </property>
     <layout class="QFormLayout" name="layout_variables">
@@ -159,30 +159,6 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="le_minibatch">
-       <property name="toolTip">
-        <string>Número de ejemplos de cada batch</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>refresco</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="le_drawevery">
-       <property name="toolTip">
-        <string>Indica cada cuantos segundos se actualizan los gráficos</string>
-       </property>
-      </widget>
-     </item>
      <item row="1" column="0">
       <widget class="QLabel" name="label_5">
        <property name="text">
@@ -193,6 +169,16 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="le_minibatch">
+       <property name="toolTip">
+        <string>Número de ejemplos de cada batch</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
    <widget class="QWidget" name="verticalLayoutWidget_2">
@@ -200,7 +186,7 @@
      <rect>
       <x>10</x>
       <y>530</y>
-      <width>141</width>
+      <width>154</width>
       <height>221</height>
      </rect>
     </property>
@@ -211,7 +197,7 @@
         <bool>true</bool>
        </property>
        <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#ff2600;&quot;&gt;EXPERIMENTAL:&lt;/span&gt; Esta opción sólo se puede seleccionar &lt;span style=&quot; font-style:italic;&quot;&gt;antes de comenzar el entrenamiento por primera vez&lt;/span&gt;. Si deseas modificar su valor una vez comenzado el entrenamiento, debes:&lt;br/&gt;1. Guardar el modelo entrenado&lt;br/&gt;2. Salir de la aplicación&lt;br/&gt;3. Arrarcar de nuevo la aplicación&lt;br/&gt;4. Seleccionar si deseas usar o no GPU&lt;br/&gt;5. Cargar modelo entrenado&lt;br/&gt;6. Continuar el entrenamiento&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#ff2600;&quot;&gt;EXPERIMENTAL:&lt;/span&gt; Esta opción sólo se puede seleccionar &lt;span style=&quot; font-style:italic;&quot;&gt;antes de comenzar el entrenamiento por primera vez&lt;/span&gt;. Si deseas modificar su valor una vez comenzado el entrenamiento, debes:&lt;br/&gt;1. Guardar el modelo entrenado&lt;br/&gt;2. &amp;quot;Olvidar&amp;quot; el modelo&lt;br/&gt;3. Seleccionar si deseas usar o no GPU&lt;br/&gt;4. Cargar modelo entrenado&lt;br/&gt;5. Continuar el entrenamiento&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="text">
         <string>Usar GPU</string>
