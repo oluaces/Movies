@@ -1,7 +1,3 @@
+.DS_Store
 modelo_guardado/
 __pycache__/
-.DS_Store
-pruebas.py
-movielens_tf2_qt.py
-.DS_Store
-movielens_tf2_qt.py
