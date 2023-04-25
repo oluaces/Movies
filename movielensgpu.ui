@@ -140,7 +140,7 @@
     </property>
     <layout class="QFormLayout" name="layout_variables">
      <item row="0" column="0">
-      <widget class="QLabel" name="label_4">
+      <widget class="QLabel" name="label_epochs">
        <property name="text">
         <string># epochs</string>
        </property>
@@ -160,7 +160,7 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_5">
+      <widget class="QLabel" name="label_batch">
        <property name="text">
         <string>batch</string>
        </property>
@@ -185,16 +185,16 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>530</y>
-      <width>154</width>
+      <y>510</y>
+      <width>141</width>
       <height>221</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0">
      <item>
       <widget class="QCheckBox" name="cb_usoGPU">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="toolTip">
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#ff2600;&quot;&gt;EXPERIMENTAL:&lt;/span&gt; Esta opción sólo se puede seleccionar &lt;span style=&quot; font-style:italic;&quot;&gt;antes de comenzar el entrenamiento por primera vez&lt;/span&gt;. Si deseas modificar su valor una vez comenzado el entrenamiento, debes:&lt;br/&gt;1. Guardar el modelo entrenado&lt;br/&gt;2. &amp;quot;Olvidar&amp;quot; el modelo&lt;br/&gt;3. Seleccionar si deseas usar o no GPU&lt;br/&gt;4. Cargar modelo entrenado&lt;br/&gt;5. Continuar el entrenamiento&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -300,7 +300,7 @@
     </property>
     <layout class="QFormLayout" name="fl_fijos_texto">
      <item row="0" column="0">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_K">
        <property name="text">
         <string>K</string>
        </property>
@@ -323,7 +323,7 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="label_learningrate">
        <property name="text">
         <string>learn. rate</string>
        </property>
@@ -343,7 +343,7 @@
       </widget>
      </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="label_nu">
        <property name="text">
         <string>nu</string>
        </property>
@@ -368,9 +368,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>290</y>
+      <y>239</y>
       <width>131</width>
-      <height>20</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="toolTip">
@@ -383,6 +383,41 @@
      <bool>true</bool>
     </property>
    </widget>
+   <widget class="QWidget" name="horizontalLayoutWidget_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>260</y>
+      <width>141</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="layout_randomseed">
+     <item>
+      <widget class="QLabel" name="label_randomseed">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="text">
+        <string>Semilla</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="le_randomseed">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="toolTip">
+        <string>Semilla para el generador de números aleatorios</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -390,7 +425,7 @@
      <x>0</x>
      <y>0</y>
      <width>1210</width>
-     <height>24</height>
+     <height>43</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">

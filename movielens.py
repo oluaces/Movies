@@ -42,8 +42,10 @@ from movielensgpu_ui import Ui_MainWindow
 
 
 class Movielens_app(QMainWindow, Ui_MainWindow):
+    ESTADOS_POSIBLES = ("arranque", "entrenando", "final")
     # Creamos la señal para invocar un entrenamiento
     comienza_entrenamiento = pyqtSignal(pd.DataFrame, pd.DataFrame)
+    actualiza_widgets = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -123,7 +125,10 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self._learner.moveToThread(self.hilo_entrenamiento)
         self.hilo_entrenamiento.start()
 
-        self.habilitar_widgets_para_entrenar()
+        # self.habilitar_widgets_para_entrenar()
+
+        # habilitar/deshabilitar widgets
+        self.estado_widgets(self.ESTADOS_POSIBLES[0])
         # Conectar signals/slots
         self.__conectarWidgets()
 
@@ -141,11 +146,14 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.le_minibatch.setText(str(self._learner.batch_size))
         self.le_epochs.setText(str(self._learner.num_epochs))
         self.le_nu.setText(str(self._learner.nu))
-        # self.le_drawevery.setText(str(self._learner.drawevery))
         self.cb_semillaaleatoria.setChecked(self._learner.random_seed)
+        self.le_randomseed.setText(str(self._learner.SEED))
         self.cb_usoGPU.setChecked(self._learner.use_GPU)
 
     def __conectarWidgets(self):
+        # conectamos señal de actualización
+        self.actualiza_widgets.connect(self.estado_widgets)
+
         # conectamos menu
         self.actionCargar_puntuaciones.triggered.connect(self.cargar_puntuaciones)
         self.actionGuardar_puntuaciones.triggered.connect(self.guardar_puntuaciones)
@@ -157,24 +165,95 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.pb_Borrarpuntos.clicked.connect(self.borrar_puntuaciones)
         self.pb_Olvidar.clicked.connect(self.olvidar)
 
+        # conectamos el checkbox de semilla aleatoria
+        self.cb_semillaaleatoria.clicked.connect(self.cambiar_estado_randomseed)
+
         # conectamos señales para entrenamiento
         self.pb_Aprender.clicked.connect(self.entrenar)
         self._learner.mensaje.connect(self.pconsola)
         self.pb_Parar.clicked.connect(self.parar_entrenamiento)
         self.comienza_entrenamiento.connect(self._learner.fit)
-        self.comienza_entrenamiento.connect(self.deshabilitar_widgets_para_entrenar)
+        # self.comienza_entrenamiento.connect(self.deshabilitar_widgets_para_entrenar)
+        self.comienza_entrenamiento.connect(self.estado_entrenando)  ## NUEVO
         self._learner.progreso.connect(self.progressBar.setValue)
-        self._learner.entrenamiento_finalizado.connect(
-            self.habilitar_widgets_para_entrenar
-        )
+        # self._learner.entrenamiento_finalizado.connect(
+        #     self.habilitar_widgets_para_entrenar
+        # )
+        self._learner.entrenamiento_finalizado.connect(self.estado_final)  ## NUEVO
         self._learner.entrenamiento_finalizado.connect(self.predecir_para_usuario)
         self._learner.computed_avg_loss.connect(self.dibujar_errores)
         self._learner.computed_embeddings.connect(self.dibujar_peliculas)
         self.cb_X.currentTextChanged.connect(self.dibujar_peliculas)
         self.cb_Y.currentTextChanged.connect(self.dibujar_peliculas)
 
-        self._learner.grafo_construido.connect(self.deshabilitar_cambio_hparams)
-        self._learner.grafo_eliminado.connect(self.habilitar_cambio_hparams)
+        # self._learner.grafo_construido.connect(self.deshabilitar_cambio_hparams)
+        # self._learner.grafo_eliminado.connect(self.habilitar_cambio_hparams)
+        self._learner.grafo_eliminado.connect(self.estado_arranque)
+        # SOBRA: en un futuro quizá se use para algo
+        # self._learner.grafo_construido.connect(self.estado_entrenando)
+
+    @pyqtSlot(name="cambiar estado randomseed")
+    def cambiar_estado_randomseed(self)->None:
+        current_status: bool = self.le_randomseed.isEnabled()
+        self.le_randomseed.setEnabled(not current_status)
+
+    @pyqtSlot(name="arranque")
+    def estado_arranque(self) -> None:
+        self.estado_widgets(self.ESTADOS_POSIBLES[0])
+
+    @pyqtSlot(name="entrenando")
+    def estado_entrenando(self) -> None:
+        self.estado_widgets(self.ESTADOS_POSIBLES[1])
+
+    @pyqtSlot(name="final")
+    def estado_final(self) -> None:
+        self.estado_widgets(self.ESTADOS_POSIBLES[2])
+
+    def estado_widgets(self, estado: str) -> None:
+        def plantilla(x: str) -> dict:
+            estados_posibles: tuple = self.ESTADOS_POSIBLES
+            diccionario: dict = {}
+            for k, v in zip(estados_posibles, x):
+                diccionario[k] = False if v in "Ff" else True
+
+            return diccionario
+
+        # Hay widgets que tras el primer entrenamiento deben quedar deshabilitados hasta que se cree un nuevo modelo:
+        # self.le_K, self.cb_semillaaleatoria, van aparte
+        estado_widgets: dict = {
+            self.actionGuardar_modelo_entrenado: plantilla("FFT"),
+            self.actionExportar: plantilla("FFT"),
+            self.cb_semillaaleatoria: plantilla("TFF"),
+            self.le_randomseed: {
+                self.ESTADOS_POSIBLES[0]: not self.cb_semillaaleatoria.isChecked(),
+                self.ESTADOS_POSIBLES[1]: False,
+                self.ESTADOS_POSIBLES[2]: False,
+            },
+            self.le_K: plantilla("TFF"),
+            self.le_learningrate: plantilla("TFT"),
+            self.le_nu: plantilla("TFT"),
+            self.le_epochs: plantilla("TFT"),
+            self.le_minibatch: plantilla("TFT"),
+            # se deshabilita al comenzar el entrenamiento y nunca se vuelve a habilitar
+            self.cb_usoGPU: {
+                self.ESTADOS_POSIBLES[0]: self._learner.GPU_available,
+                self.ESTADOS_POSIBLES[1]: False,
+                self.ESTADOS_POSIBLES[2]: False,
+            },
+            self.pb_Aprender: plantilla("TFT"),
+            self.pb_Parar: plantilla("FTF"),
+            self.pb_Borrarpuntos: plantilla("TFT"),
+            self.pb_Olvidar: plantilla("FFT"),
+            self.menuBar: plantilla("TFT"),
+            self.tableWidget: plantilla("TFT"),
+        }
+
+        for widget in estado_widgets:
+            status = estado_widgets[widget][estado]
+            widget.setEnabled(status)
+
+        # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
+        self.repaint()
 
     def mostrar_predicciones(self, predicciones):
         # las predicciones están en la columna 'predicted_score'
@@ -232,8 +311,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         param_del_ui["learning_rate"] = float(self.le_learningrate.text())
         param_del_ui["batch_size"] = int(self.le_minibatch.text())
         param_del_ui["nu"] = float(self.le_nu.text())
-        # param_del_ui["drawevery"] = int(self.le_drawevery.text())
         param_del_ui["random_seed"] = self.cb_semillaaleatoria.isChecked()
+        param_del_ui["SEED"] = int(self.le_randomseed.text())
         param_del_ui["use_GPU"] = self.cb_usoGPU.isChecked()
 
         for param_nombre in param_actuales:
@@ -338,12 +417,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                     )
                     self.graphicsView_pelis.addItem(l)
 
-    # @pyqtSlot(np.ndarray, np.ndarray, name="dibujar_peliculas")
-    # def dibujar_peliculas(self, usuarios_emb, peliculas_emb):
-    #     self.peliculas_emb = peliculas_emb
-    #     self.usuarios_emb = usuarios_emb
-    #     self.redibujar_peliculas()
-
     # @pyqtSlot(pg.graphicsItems.PlotDataItem.PlotDataItem, np.ndarray, name="mostrar_titulos_en_consola")
     def mostrar_titulos_en_consola(self, pdi, l):
         lista_de_puntos = []
@@ -365,7 +438,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         pen_user = pg.mkPen("b", width=2)
 
         # Leyenda
-        self.graphicsView_errores.addLegend()
+        self.graphicsView_errores.addLegend(offset=(-10, 10))
 
         # Lista de coordenadas Y del error de entrenamiento
         self.avg_error_list.append(avg_error)
@@ -376,7 +449,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.global_step_list,
             self.avg_error_list,
             pen=pen_train,
-            name="Error reescritura",
+            name="Hinge loss (entren.)",
             clear=True,
         )
         # Lista de coordenadas Y del error de test
@@ -385,7 +458,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.global_step_list,
             self.avg_error_test_list,
             pen=pen_test,
-            name="Error en test",
+            name="Hinge loss (test)",
             clear=False,
         )
         # Lista de coordenadas Y del error de usuario (puede ser nan, pero hay que guardarlo igual)
@@ -395,7 +468,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 self.global_step_list,
                 self.avg_error_iu_list,
                 pen=pen_user,
-                name="Error usuario",
+                name="Hinge loss (usuario)",
                 clear=False,
             )
 
@@ -586,66 +659,67 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         puntuaciones.user = [self.num_users] * len(mejores)
         return puntuaciones
 
-    @pyqtSlot(name="habilitar_cambio_hparams")
-    def habilitar_cambio_hparams(self):
-        self.le_K.setEnabled(True)
-        self.cb_semillaaleatoria.setEnabled(True)
-        # y deshabilitamos Guardar Modelo, puesto que NO hay modelo creado
-        self.actionGuardar_modelo_entrenado.setEnabled(False)
-        # y lo mismo para exportar los embeddings
-        self.actionExportar.setEnabled(False)
-        # EXPERIMENTAL:
-        # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
-        # es decir "olvidar" lo aprendido
-        self.cb_usoGPU.setEnabled(True)
+    # @pyqtSlot(name="habilitar_cambio_hparams")
+    # def habilitar_cambio_hparams(self):
+    #     self.le_K.setEnabled(True)
+    #     self.cb_semillaaleatoria.setEnabled(True)
+    #     # y deshabilitamos Guardar Modelo, puesto que NO hay modelo creado
+    #     self.actionGuardar_modelo_entrenado.setEnabled(False)
+    #     # y lo mismo para exportar los embeddings
+    #     self.actionExportar.setEnabled(False)
+    #     # EXPERIMENTAL:
+    #     # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
+    #     # es decir "olvidar" lo aprendido, y suponiendo que haya GPU
+    #     if self._learner.GPU_available:
+    #         self.cb_usoGPU.setEnabled(True)
 
-    @pyqtSlot(name="deshabilitar_cambio_hparams")
-    def deshabilitar_cambio_hparams(self):
-        self.le_K.setEnabled(False)
-        self.cb_semillaaleatoria.setEnabled(False)
-        # y habilitamos Guardar Modelo, puesto que ya hay modelo creado
-        self.actionGuardar_modelo_entrenado.setEnabled(True)
-        # y lo mismo para exportar los embeddings
-        self.actionExportar.setEnabled(True)
+    # @pyqtSlot(name="deshabilitar_cambio_hparams")
+    # def deshabilitar_cambio_hparams(self):
+    #     self.le_K.setEnabled(False)
+    #     self.cb_semillaaleatoria.setEnabled(False)
+    #     # y habilitamos Guardar Modelo, puesto que ya hay modelo creado
+    #     self.actionGuardar_modelo_entrenado.setEnabled(True)
+    #     # y lo mismo para exportar los embeddings
+    #     self.actionExportar.setEnabled(True)
 
-        # EXPERIMENTAL:
-        # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
-        # es decir "olvidar" lo aprendido
-        self.cb_usoGPU.setEnabled(False)
+    #     # EXPERIMENTAL:
+    #     # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
+    #     # es decir "olvidar" lo aprendido
+    #     self.cb_usoGPU.setEnabled(False)
 
-    @pyqtSlot(name="habilitar_widgets_para_entrenar")
-    def habilitar_widgets_para_entrenar(self):
-        self.widgets_habilitados(True)
+    # @pyqtSlot(name="habilitar_widgets_para_entrenar")
+    # def habilitar_widgets_para_entrenar(self):
+    #     self.widgets_habilitados(True)
 
-    @pyqtSlot(name="deshabilitar_widgets_para_entrenar")
-    def deshabilitar_widgets_para_entrenar(self):
-        self.widgets_habilitados(False)
+    # @pyqtSlot(name="deshabilitar_widgets_para_entrenar")
+    # def deshabilitar_widgets_para_entrenar(self):
+    #     self.widgets_habilitados(False)
 
-    def widgets_habilitados(self, estado=True):
-        # Hay widgets que tras el primer entrenamiento deben quedar deshabilitados hasta que se cree un nuevo modelo:
-        # self.le_K, self.cb_semillaaleatoria, van aparte
-        lista_widgets = [
-            self.le_epochs,
-            self.le_minibatch,
-            # self.le_drawevery,
-            self.le_learningrate,
-            self.le_nu,
-            self.pb_Olvidar,
-            self.pb_Borrarpuntos,
-            self.pb_Aprender,
-            self.menuBar,
-            self.tableWidget,
-            # self.cb_usoGPU,  # se deshabilita al comenzar el entrenamiento y nunca se vuelve a habilitar
-        ]
+    # def widgets_habilitados(self, estado=True):
+    #     # Hay widgets que tras el primer entrenamiento deben quedar deshabilitados hasta que se cree un nuevo modelo:
+    #     # self.le_K, self.cb_semillaaleatoria, van aparte
+    #     lista_widgets = [
+    #         self.le_epochs,
+    #         self.le_minibatch,
+    #         # self.le_drawevery,
+    #         self.le_learningrate,
+    #         self.le_nu,
+    #         self.pb_Olvidar,
+    #         self.pb_Borrarpuntos,
+    #         self.pb_Aprender,
+    #         self.menuBar,
+    #         self.tableWidget,
+    #         # self.cb_usoGPU,  # se deshabilita al comenzar el entrenamiento y nunca se vuelve a habilitar
+    #     ]
 
-        for w in lista_widgets:
-            w.setEnabled(estado)
+    #     for w in lista_widgets:
+    #         w.setEnabled(estado)
 
-        # Este botón va al revés que todos lo demás
-        self.pb_Parar.setEnabled(not estado)
+    #     # Este botón va al revés que todos lo demás
+    #     self.pb_Parar.setEnabled(not estado)
 
-        # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
-        self.repaint()
+    #     # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
+    #     self.repaint()
 
     def _predicciones_para_usuario(self):
         if self._hay_usuario_interactivo:
@@ -754,7 +828,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
     def parar_entrenamiento(self):
         self.pconsola("--- Interrupción de entrenamiento solicitada ---\n")
         self._learner.stop_fit()
-
 
     @pyqtSlot(name="olvidar")
     def olvidar(self):

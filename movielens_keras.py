@@ -56,8 +56,6 @@ class UI_Callback(tf.keras.callbacks.Callback):
                 verbose=0,
             )
 
-            print(f"IU loss: {iu_loss}")
-
         # emitimos la señal para pintar las películas
         self.sender.computed_embeddings.emit()
 
@@ -66,7 +64,7 @@ class UI_Callback(tf.keras.callbacks.Callback):
 
         # emitimos para imprimir en consola los datos
         self.sender.mensaje.emit(
-            f"Epoch: {epoch:4d} -> Training error: {train_loss:.6f} Test error: {val_loss:.6f}\n"
+            f"Epoch: {epoch+1:4d} -> Training error: {train_loss:.6f} Test error: {val_loss:.6f}\n"
         )
 
         # emitimos para actualizar la barra de progreso
@@ -89,19 +87,21 @@ class Movielens_Learner(QObject):
         num_users,
         num_movies,
         K=100,
-        learning_rate=0.01,
+        learning_rate=0.001,
         nu=0.000001,
-        num_epochs=20,
-        batch_size=250,
+        num_epochs=100,
+        batch_size=25000,
         random_seed=True,
         GPU=False,
     ) -> None:
         super().__init__()
 
         self.random_seed: bool = random_seed
+        # valor de semilla por defecto, pero si random_seed es True, en _init_graph() se
+        # cambiará por int(time())
+        self.SEED: int = 2032
         self.learning_rate: float = learning_rate
         self.nu: float = nu
-        # el regularizador se inicializa en _init_graph, pero aquí lo declaro
         self.num_epochs: int = num_epochs
         self.batch_size: int = batch_size
         self.num_users: int = num_users
@@ -112,19 +112,16 @@ class Movielens_Learner(QObject):
         self.the_model: tf.keras.Model | None = None
         self.model_for_prediction: tf.keras.Model | None = None
 
-        self.use_GPU: bool = GPU
+        # tf.config.set_visible_devices([], "GPU")
+        self.GPU_list = tf.config.get_visible_devices("GPU")
+        self.GPU_available = len(self.GPU_list) > 0
+        self.use_GPU: bool = GPU and self.GPU_available
 
     def _init_graph(self) -> None:
         # Semilla de generador de aleatorios
         if self.random_seed:
-            SEED = int(time())
-        else:
-            SEED = 2032
-
-        # # tf.set_random_seed(SEED)
-        # tf.compat.v1.random.set_random_seed(SEED)
-        # random.seed(SEED)
-        tf.random.set_seed(SEED)
+            self.SEED = int(time())
+        tf.random.set_seed(self.SEED)
 
         input_user = tf.keras.Input(shape=(None,), name="user")
         best_movie = tf.keras.Input(shape=(None,), name="best_movie")
@@ -135,14 +132,14 @@ class Movielens_Learner(QObject):
             self.num_users,
             self.K,
             name="W",
-            embeddings_initializer=tf.initializers.GlorotUniform(),
+            embeddings_initializer=tf.initializers.GlorotUniform(seed=self.SEED),
             embeddings_regularizer=emb_reg,
         )
         V = tf.keras.layers.Embedding(
             self.num_movies,
             self.K,
             name="V",
-            embeddings_initializer=tf.initializers.GlorotUniform(),
+            embeddings_initializer=tf.initializers.GlorotUniform(seed=self.SEED),
             embeddings_regularizer=emb_reg,
         )
 
@@ -159,12 +156,16 @@ class Movielens_Learner(QObject):
             name="f_worst",
         )
         the_output = tf.subtract(f_best, f_worst, name="salida")
-        # outputs = [tf.linalg.diag_part(f_best), tf.linalg.diag_part(f_worst)]
 
+        # Una parte del modelo completo que se usa para entrenar
+        # será el que se use para predecir la valoración para una película
         self.model_for_prediction = tf.keras.Model(
             inputs=[input_user, best_movie], outputs=f_best
         )
 
+        # El modelo que vamos a entrenar tratará de aprender que para la terna:
+        # usuario, película1, película2 debe predecir +1, ya que película1 le gusta
+        # al usuario más que película2.
         self.the_model = tf.keras.Model(
             inputs=[input_user, best_movie, worst_movie], outputs=the_output
         )
@@ -175,13 +176,14 @@ class Movielens_Learner(QObject):
             loss=tf.keras.losses.Hinge(),
         )
 
+        # quizá lo use en un futuro, para generar el gráfico de la red o algo así
+        # de momento está desconectada
         self.grafo_construido.emit()
 
     def set_params(self, **params) -> None:
         # K no va a poder ser modificada, sólo se permite desde la interfaz gráfica
         # cuando aún no se ha creado el modelo, así que sólo me tengo que preocupar
         # de propagar hacia el modelo existente los cambios en learning_rate y nu
-        print(f"Params: {params}")
         for k, v in params.items():
             setattr(self, k, v)
             if self.the_model is not None:
@@ -200,6 +202,7 @@ class Movielens_Learner(QObject):
             "batch_size",
             "num_epochs",
             "random_seed",
+            "SEED",
             "use_GPU",
             "num_users",
             "num_movies",
@@ -252,7 +255,7 @@ class Movielens_Learner(QObject):
 
         # Callback
         myCallback_obj: UI_Callback = UI_Callback(sender=self)
-        self.the_model.fit(
+        self.the_model.fit(  # type: ignore
             x=(data["user"], data["best_movie"], data["worst_movie"]),
             y=np.ones(shape=(len(data),)),
             batch_size=self.batch_size,
@@ -268,7 +271,7 @@ class Movielens_Learner(QObject):
             epochs=self.num_epochs,
             callbacks=myCallback_obj,
             shuffle=True,
-            verbose=0,
+            verbose=0,  # type: ignore
         )
 
         self.entrenamiento_finalizado.emit()
@@ -277,7 +280,7 @@ class Movielens_Learner(QObject):
         if self.the_model is None:
             raise RuntimeError("Modelo inexistente")
 
-        predictions = self.model_for_prediction.predict([data.user, data.movie])
+        predictions = self.model_for_prediction.predict([data.user, data.movie], verbose=0)  # type: ignore
         df_result = pd.DataFrame(columns=["user", "movie", "predicted_score"])
         df_result.user = data.user
         df_result.movie = data.movie
