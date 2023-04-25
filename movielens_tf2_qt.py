@@ -12,7 +12,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from datetime import timedelta
 from time import time
-
+ 
 
 def seq_batch_decorator(func):
     def func_with_counter(*args, **kwargs):
