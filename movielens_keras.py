@@ -42,14 +42,14 @@ class UI_Callback(tf.keras.callbacks.Callback):
         self.sender = sender
 
     def on_epoch_end(self, epoch, logs: dict | None = None):
-        train_loss: float = logs["loss"]
-        val_loss: float = logs["val_loss"]
+        train_loss: float = logs["loss"]  # type: ignore
+        val_loss: float = logs["val_loss"]  # type: ignore
 
         global iu_data
         iu_loss: float = np.nan
 
         if len(iu_data) > 0:
-            iu_loss = self.model.evaluate(
+            iu_loss = self.model.evaluate(  # type: ignore
                 x=(iu_data["user"], iu_data["best_movie"], iu_data["worst_movie"]),
                 y=np.ones(len(iu_data)),
                 batch_size=len(iu_data),
@@ -73,14 +73,14 @@ class UI_Callback(tf.keras.callbacks.Callback):
 
 class Movielens_Learner(QObject):
     # Señal que se emite cada vez que sacamos información durante el entrenamiento
-    grafo_construido = pyqtSignal()
-    grafo_eliminado = pyqtSignal()
-    entrenamiento_finalizado = pyqtSignal()
-    mensaje = pyqtSignal(str)
-    progreso = pyqtSignal(int)
+    grafo_construido: pyqtSignal = pyqtSignal()
+    grafo_eliminado: pyqtSignal = pyqtSignal()
+    entrenamiento_finalizado: pyqtSignal = pyqtSignal()
+    mensaje: pyqtSignal = pyqtSignal(str)
+    progreso: pyqtSignal = pyqtSignal(int)
     # Señales que se emiten cada vez que sacamos información durante el entrenamiento
-    computed_avg_loss = pyqtSignal(float, float, float)
-    computed_embeddings = pyqtSignal()
+    computed_avg_loss: pyqtSignal = pyqtSignal(float, float, float)
+    computed_embeddings: pyqtSignal = pyqtSignal()
 
     def __init__(
         self,
@@ -132,14 +132,14 @@ class Movielens_Learner(QObject):
             self.num_users,
             self.K,
             name="W",
-            embeddings_initializer=tf.initializers.GlorotUniform(seed=self.SEED),
+            embeddings_initializer=tf.initializers.GlorotUniform(seed=self.SEED),  # type: ignore
             embeddings_regularizer=emb_reg,
         )
         V = tf.keras.layers.Embedding(
             self.num_movies,
             self.K,
             name="V",
-            embeddings_initializer=tf.initializers.GlorotUniform(seed=self.SEED),
+            embeddings_initializer=tf.initializers.GlorotUniform(seed=self.SEED),  # type: ignore
             embeddings_regularizer=emb_reg,
         )
 
@@ -216,15 +216,15 @@ class Movielens_Learner(QObject):
 
     @property
     def regularizer(self) -> L2:
-        return self.the_model.get_layer(name="W").embeddings_regularizer
+        return self.the_model.get_layer(name="W").embeddings_regularizer  # type: ignore
 
     @property
     def V_weights(self) -> np.ndarray:
-        return self.the_model.get_layer(name="V").get_weights()[0].transpose()
+        return self.the_model.get_layer(name="V").get_weights()[0].transpose()  # type: ignore
 
     @property
     def W_weights(self) -> np.ndarray:
-        return self.the_model.get_layer(name="W").get_weights()[0].transpose()
+        return self.the_model.get_layer(name="W").get_weights()[0].transpose()  # type: ignore
 
     def reset_graph(self) -> None:
         self.the_model = None
@@ -232,18 +232,18 @@ class Movielens_Learner(QObject):
         self.grafo_eliminado.emit()
 
     def stop_fit(self) -> None:
-        self.the_model.stop_training = True
+        self.the_model.stop_training = True  # type: ignore
 
     @pyqtSlot(pd.DataFrame, pd.DataFrame, name="fit")
     def fit(self, *args, **kwargs) -> None:
         if self.use_GPU:
-            with tf.device("/device:GPU:0"):
+            with tf.device("/device:GPU:0"):  # type: ignore
                 self.fit_aux(*args, **kwargs)
         else:
-            with tf.device("/device:CPU:0"):
+            with tf.device("/device:CPU:0"):  # type: ignore
                 self.fit_aux(*args, **kwargs)
 
-    def fit_aux(self, data, test_data) -> None:
+    def fit_aux(self, data: pd.DataFrame, test_data: pd.DataFrame) -> None:
         if self.the_model == None:
             self._init_graph()
 
@@ -276,7 +276,7 @@ class Movielens_Learner(QObject):
 
         self.entrenamiento_finalizado.emit()
 
-    def predict(self, data):
+    def predict(self, data: pd.DataFrame):
         if self.the_model is None:
             raise RuntimeError("Modelo inexistente")
 
@@ -287,7 +287,7 @@ class Movielens_Learner(QObject):
         df_result.predicted_score = predictions
         return df_result
 
-    def restore_model(self, path) -> None:
+    def restore_model(self, path: str) -> None:
         params: dict = self.__load_params(path)
         self.set_params(**params)
         self._init_graph()
@@ -318,7 +318,11 @@ class Movielens_Learner(QObject):
         return datos
 
 
-def load_and_recode_pj(filename, new_user_codes=None, new_movie_codes=None) -> tuple:
+def load_and_recode_pj(
+    filename: str,
+    new_user_codes: dict | None = None,
+    new_movie_codes: dict | None = None,
+) -> tuple:
     pj = pd.read_csv(filename, names=["user", "best_movie", "worst_movie"])
 
     # Recodificar usuarios y películas para que los índices comiencen en 0 y sean consecutivos

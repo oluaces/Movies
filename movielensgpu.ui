@@ -186,7 +186,7 @@
      <rect>
       <x>10</x>
       <y>510</y>
-      <width>141</width>
+      <width>154</width>
       <height>221</height>
      </rect>
     </property>
@@ -273,7 +273,6 @@
       <widget class="QPushButton" name="pb_Olvidar">
        <property name="font">
         <font>
-         <family>Helvetica</family>
          <weight>75</weight>
          <italic>true</italic>
          <bold>true</bold>
@@ -283,7 +282,7 @@
         <string>Elimina el modelo aprendido</string>
        </property>
        <property name="text">
-        <string>Olvidar</string>
+        <string>Olvidar modelo</string>
        </property>
       </widget>
      </item>
@@ -425,7 +424,7 @@
      <x>0</x>
      <y>0</y>
      <width>1210</width>
-     <height>43</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -470,7 +469,10 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Exportar</string>
+    <string>Exportar embeddings</string>
+   </property>
+   <property name="toolTip">
+    <string>Exporta la codificación de los usuarios (matriz W) y las películas (matriz V)</string>
    </property>
   </action>
  </widget>

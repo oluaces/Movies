@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
 import math
-
-
-SIN_PUNTUACIÓN: str = "-X-"
-
-# import matplotlib.pyplot as plt
+import sys
+import pyqtgraph as pg
+import datetime
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -14,38 +12,23 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QTableWidgetItem,
-    QTableWidget,
 )
-
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import (
-    QPen,
-    QColor,
-    QTextCursor,
-    QValidator,
-    QIntValidator,
-    QDoubleValidator,
-)
+from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
-import sys
-from random import random
-import pyqtgraph as pg
-import datetime
-
-# import os
-
-# from movielens_tf2_qt import Movielens_Learner, load_and_recode_pj
 from movielens_keras import Movielens_Learner, load_and_recode_pj
 from movielensgpu_ui import Ui_MainWindow
 
-# import tensorflow as tf
+SIN_PUNTUACIÓN: str = "-X-"
+FICHERO_PELÍCULAS: str = "datos/movies.csv"
+FICHERO_ENTRENAMIENTO: str = "datos/pj_train.csv"
+FICHERO_TEST: str = "datos/pj_test.csv"
 
 
 class Movielens_app(QMainWindow, Ui_MainWindow):
     ESTADOS_POSIBLES = ("arranque", "entrenando", "final")
     # Creamos la señal para invocar un entrenamiento
-    comienza_entrenamiento = pyqtSignal(pd.DataFrame, pd.DataFrame)
-    actualiza_widgets = pyqtSignal(str)
+    comienza_entrenamiento: pyqtSignal = pyqtSignal(pd.DataFrame, pd.DataFrame)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -71,10 +54,9 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             []
         )  # error medio de entrenamiento sólo para las preferencias de usuario
 
-        # Los conjuntos de entrenamiento y test van "atornillados" en el código, deben ser
-        # pj_train.csv y pj_test.csv respectivamente
+        # Los conjuntos de entrenamiento y test van "atornillados" en el código
         self._train_pj, self._new_ucodes, self._new_mcodes = load_and_recode_pj(
-            "pj_train.csv"
+            FICHERO_ENTRENAMIENTO
         )
         self.num_users = len(self._new_ucodes)
         self.num_movies = len(self._new_mcodes)
@@ -106,11 +88,13 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
 
         # self.cargar_puntuaciones()
 
-        # Los ejemplos de test se recodifican utilizando la codificación obtenida sobre los de entrenamiento, por
-        # lo que es necesario que en el conjunto de entrenamiento aparezcan todos los usuarios y todas las películas
-        # alguna vez, pero eso NO QUIERE DECIR que haya ejemplos de test en el conjunto de entrenamiento
+        # Los ejemplos de test se recodifican utilizando la codificación obtenida
+        # sobre los de entrenamiento, por lo que es necesario que en el conjunto
+        # de entrenamiento aparezcan todos los usuarios y todas las películas alguna
+        # vez, pero eso NO QUIERE DECIR que haya ejemplos de test en el conjunto
+        # de entrenamiento
         self._test_pj, _, _ = load_and_recode_pj(
-            "pj_test.csv", self._new_ucodes, self._new_mcodes
+            FICHERO_TEST, self._new_ucodes, self._new_mcodes
         )
         # Aquí va el sistema de aprendizaje
         self._learner = Movielens_Learner(
@@ -151,9 +135,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         self.cb_usoGPU.setChecked(self._learner.use_GPU)
 
     def __conectarWidgets(self):
-        # conectamos señal de actualización
-        self.actualiza_widgets.connect(self.estado_widgets)
-
         # conectamos menu
         self.actionCargar_puntuaciones.triggered.connect(self.cargar_puntuaciones)
         self.actionGuardar_puntuaciones.triggered.connect(self.guardar_puntuaciones)
@@ -193,7 +174,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         # self._learner.grafo_construido.connect(self.estado_entrenando)
 
     @pyqtSlot(name="cambiar estado randomseed")
-    def cambiar_estado_randomseed(self)->None:
+    def cambiar_estado_randomseed(self) -> None:
         current_status: bool = self.le_randomseed.isEnabled()
         self.le_randomseed.setEnabled(not current_status)
 
@@ -297,7 +278,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                     self, "Guardado de modelo", "No ha sido posible guardar el modelo"
                 )
 
-    # @pyqtSlot(name="recoger_hiperparametros")
     def recoger_hiperparametros(self):
         """
         Recoger y validar los campos de entrada de los hiperparámetros
@@ -316,7 +296,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         param_del_ui["use_GPU"] = self.cb_usoGPU.isChecked()
 
         for param_nombre in param_actuales:
-            # line_edit = param_del_ui[param_nombre][0]
             valor = param_del_ui.get(param_nombre, None)
             if valor is not None:
                 # Cambiamos el valor del parámetro por el nuevo valor, que es aceptable, si es diferente
@@ -473,19 +452,20 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             )
 
     def cargar_peliculas(self):
-        movies = pd.read_csv("movies.csv")
+        movies = pd.read_csv(FICHERO_PELÍCULAS)
         self.peliculas = movies.Title
         for fila, pelicula in zip(range(len(movies.Title)), movies.Title):
             # Columna de puntuaciones (espacio vacío de momento)
-            _PUNTUACIONES = [""]
-            _PUNTUACIONES.extend([str(i) for i in range(1, 11)])
+            puntuaciones = [""]
+            puntuaciones.extend([str(i) for i in range(1, 11)])
             item = QComboBox()
-            for i in _PUNTUACIONES:
+            for i in puntuaciones:
                 item.addItem(str(i))
             self.tableWidget.setCellWidget(fila, 0, item)
             # Columna de nombres de películas
             item = QTableWidgetItem(pelicula)
-            item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)  # pero no editable
+            # Enabled, pero no editable
+            item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
             self.tableWidget.setItem(fila, 1, item)
             # Columna de valoraciones (para cuando el modelo esté entrenado)
             item = QTableWidgetItem(SIN_PUNTUACIÓN)
@@ -494,8 +474,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="cargar_puntuaciones")
     def cargar_puntuaciones(self):
-        # Leer datos de las valoraciones de las películas
-        # formato:
+        # Leer datos de las valoraciones de las películas. Formato:
         #   movie, score
         idButton = QMessageBox.question(
             self,
@@ -513,7 +492,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                         pelicula = puntuaciones.iloc[i].movie
                         puntos = puntuaciones.iloc[i].score
                         it = self.tableWidget.cellWidget(pelicula, 0)
-                        it.setCurrentText(str(puntos))
+                        it.setCurrentText(str(puntos))  # type: ignore
                 except:
                     QMessageBox.warning(
                         self, "Carga de puntuaciones", "No ha sido posible la carga"
@@ -525,7 +504,6 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         Exporta la representación de los usuarios y películas a formato csv
         :return: Nada
         """
-        # usuarios, películas = self._learner.getEmbeddings()
         usuarios = self._learner.W_weights
         películas = self._learner.V_weights
         if usuarios is not None:
@@ -573,7 +551,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         peliculas = []
         filas = self.tableWidget.rowCount()
         for f in range(filas):
-            texto = self.tableWidget.cellWidget(f, 0).currentText()
+            texto = self.tableWidget.cellWidget(f, 0).currentText()  # type: ignore
             if len(texto) > 0:
                 score = int(texto)
                 puntuaciones.append(score)
@@ -611,7 +589,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
                 # it = self.tableWidget.item(f, 0)
                 # it.setText('')
                 it = self.tableWidget.cellWidget(f, 0)
-                it.setCurrentText("")
+                it.setCurrentText("")  # type: ignore
             # y borramos también las valoraciones, no hay usuario interactivo
             self.borrar_predicciones()
 
@@ -630,7 +608,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
 
         valoraciones = []  # formato [(pelicula, valoración), ... ]
         for f in range(filas):
-            texto = self.tableWidget.cellWidget(f, 0).currentText()
+            texto = self.tableWidget.cellWidget(f, 0).currentText()  # type: ignore
             if len(texto) > 0:
                 valor = int(texto)
                 valoraciones.append((f, valor))
@@ -659,76 +637,17 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         puntuaciones.user = [self.num_users] * len(mejores)
         return puntuaciones
 
-    # @pyqtSlot(name="habilitar_cambio_hparams")
-    # def habilitar_cambio_hparams(self):
-    #     self.le_K.setEnabled(True)
-    #     self.cb_semillaaleatoria.setEnabled(True)
-    #     # y deshabilitamos Guardar Modelo, puesto que NO hay modelo creado
-    #     self.actionGuardar_modelo_entrenado.setEnabled(False)
-    #     # y lo mismo para exportar los embeddings
-    #     self.actionExportar.setEnabled(False)
-    #     # EXPERIMENTAL:
-    #     # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
-    #     # es decir "olvidar" lo aprendido, y suponiendo que haya GPU
-    #     if self._learner.GPU_available:
-    #         self.cb_usoGPU.setEnabled(True)
-
-    # @pyqtSlot(name="deshabilitar_cambio_hparams")
-    # def deshabilitar_cambio_hparams(self):
-    #     self.le_K.setEnabled(False)
-    #     self.cb_semillaaleatoria.setEnabled(False)
-    #     # y habilitamos Guardar Modelo, puesto que ya hay modelo creado
-    #     self.actionGuardar_modelo_entrenado.setEnabled(True)
-    #     # y lo mismo para exportar los embeddings
-    #     self.actionExportar.setEnabled(True)
-
-    #     # EXPERIMENTAL:
-    #     # El selector de GPU no se puede cambiar hasta reiniciar el modelo,
-    #     # es decir "olvidar" lo aprendido
-    #     self.cb_usoGPU.setEnabled(False)
-
-    # @pyqtSlot(name="habilitar_widgets_para_entrenar")
-    # def habilitar_widgets_para_entrenar(self):
-    #     self.widgets_habilitados(True)
-
-    # @pyqtSlot(name="deshabilitar_widgets_para_entrenar")
-    # def deshabilitar_widgets_para_entrenar(self):
-    #     self.widgets_habilitados(False)
-
-    # def widgets_habilitados(self, estado=True):
-    #     # Hay widgets que tras el primer entrenamiento deben quedar deshabilitados hasta que se cree un nuevo modelo:
-    #     # self.le_K, self.cb_semillaaleatoria, van aparte
-    #     lista_widgets = [
-    #         self.le_epochs,
-    #         self.le_minibatch,
-    #         # self.le_drawevery,
-    #         self.le_learningrate,
-    #         self.le_nu,
-    #         self.pb_Olvidar,
-    #         self.pb_Borrarpuntos,
-    #         self.pb_Aprender,
-    #         self.menuBar,
-    #         self.tableWidget,
-    #         # self.cb_usoGPU,  # se deshabilita al comenzar el entrenamiento y nunca se vuelve a habilitar
-    #     ]
-
-    #     for w in lista_widgets:
-    #         w.setEnabled(estado)
-
-    #     # Este botón va al revés que todos lo demás
-    #     self.pb_Parar.setEnabled(not estado)
-
-    #     # teóricamente, esto no debería ser necesario, pero a veces la ventana no refresca bien...
-    #     self.repaint()
-
     def _predicciones_para_usuario(self):
         if self._hay_usuario_interactivo:
-            # Creamos el dataframe para hacer la predicción para el usuario interactivo (el último) con todas las peliculas
+            # Creamos el dataframe para hacer la predicción para el
+            # usuario interactivo (el último) con todas las peliculas
             for_prediction = pd.DataFrame(columns=["user", "movie"])
             for_prediction.movie = list(range(self.num_movies))
-            # En este objeto, self.num_users contiene el número de usuario SIN tener en cuenta el usuario interactivo
-            # así que éste tendrá por código self.num_users, ya que los cargados desde el conjunto de entrenamiento
-            # se recodifican (si es necesario) y toman los valores de 0 a self.num_users - 1
+            # En este objeto, self.num_users contiene el número de usuario
+            # SIN tener en cuenta el usuario interactivo así que éste
+            # tendrá por código self.num_users, ya que los cargados desde el
+            # conjunto de entrenamiento se recodifican (si es necesario)
+            # y toman los valores de 0 a self.num_users - 1
             for_prediction.user = [self.num_users] * self.num_movies
             predicted_scores = self._learner.predict(for_prediction)
         else:
@@ -767,7 +686,7 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             # Lista de índices de películas valoradas por el usuario
             pelis_valoradas = []
             for f in range(filas):
-                texto = self.tableWidget.cellWidget(f, 0).currentText()
+                texto = self.tableWidget.cellWidget(f, 0).currentText()  # type: ignore
                 if len(texto) > 0:
                     pelis_valoradas.append(f)
 
@@ -788,7 +707,8 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
         # Leemos todos los hiperparámetros, los asignamos al recomendador
         self.recoger_hiperparametros()
 
-        # Rellenar los combos si están vacíos (primer entrenamiento) para dibujar los embeddings de las películas
+        # Rellenar los combos si están vacíos (primer entrenamiento) para dibujar
+        # los embeddings de las películas
         if self.cb_X.currentText() == "":
             for i in range(self._learner.K):
                 self.cb_X.addItem(str(i + 1))
@@ -797,14 +717,11 @@ class Movielens_app(QMainWindow, Ui_MainWindow):
             self.cb_Y.setCurrentText(self.cb_X.itemText(1))
 
         # Configuramos la barra de progreso adecuadamente
-        self.progressBar.setRange(0, self._learner.num_epochs)  # Va a ir en porcentaje
+        self.progressBar.setRange(0, self._learner.num_epochs)
         self.progressBar.reset()
 
-        # Construir el PlotDataItem para dibujar las películas, y las etiquetas necesarias
-        # construir_pdi_peliculas()
-
-        # Si hay valoraciones del usuario interactivo, hay que crear los juicios de preferencias de dicho
-        # usuario y añadirlos al conjunto de entrenamiento
+        # Si hay valoraciones del usuario interactivo, hay que crear los juicios
+        # de preferencias de dicho usuario y añadirlos al conjunto de entrenamiento
         # Datos del usuario interactivo, si los hay
         train_pj_interactive = self._crea_pjs_de_usuario()
         if len(train_pj_interactive) > 0:
