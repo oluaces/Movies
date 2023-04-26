@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '/Users/oluaces/Library/CloudStorage/OneDrive-UniversidaddeOviedo/PythonProjects/Movielens/movielensgpu.ui'
+# Form implementation generated from reading ui file '/Users/oluaces/Library/CloudStorage/OneDrive-UniversidaddeOviedo/Docencia/Master AEPIA-UIMP/SR 22-23/Movielens-Keras/movielensgpu.ui'
 #
 # Created by: PyQt6 UI code generator 6.5.0
 #
@@ -230,6 +230,6 @@ class Ui_MainWindow(object):
         self.actionGuardar_puntuaciones.setText(_translate("MainWindow", "Guardar puntuaciones"))
         self.actionCargar_modelo_entrenado.setText(_translate("MainWindow", "Cargar modelo entrenado"))
         self.actionGuardar_modelo_entrenado.setText(_translate("MainWindow", "Guardar modelo entrenado"))
-        self.actionExportar.setText(_translate("MainWindow", "Exportar embeddings"))
+        self.actionExportar.setText(_translate("MainWindow", "Exportar Wu y Vp"))
         self.actionExportar.setToolTip(_translate("MainWindow", "Exporta la codificación de los usuarios (matriz W) y las películas (matriz V)"))
 from pyqtgraph import PlotWidget

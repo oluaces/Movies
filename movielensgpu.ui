@@ -469,7 +469,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Exportar embeddings</string>
+    <string>Exportar Wu y Vp</string>
    </property>
    <property name="toolTip">
     <string>Exporta la codificación de los usuarios (matriz W) y las películas (matriz V)</string>
