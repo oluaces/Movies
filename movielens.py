@@ -18,11 +18,14 @@ from PyQt6.QtGui import QTextCursor
 from PyQt6.QtCore import QThread, pyqtSignal, pyqtSlot
 from movielens_keras import Movielens_Learner, load_and_recode_pj
 from movielensgpu_ui import Ui_MainWindow
+from os import path
+
 
 SIN_PUNTUACIÓN: str = "-X-"
-FICHERO_PELÍCULAS: str = "datos/movies.csv"
-FICHERO_ENTRENAMIENTO: str = "datos/pj_train.csv"
-FICHERO_TEST: str = "datos/pj_test.csv"
+bundle_dir = path.abspath(path.dirname(__file__))
+FICHERO_PELÍCULAS: str = path.join(bundle_dir, "datos/movies.csv")
+FICHERO_ENTRENAMIENTO: str = path.join(bundle_dir, "datos/pj_train.csv")
+FICHERO_TEST: str = path.join(bundle_dir, "datos/pj_test.csv")
 
 
 class Movielens_app(QMainWindow, Ui_MainWindow):
