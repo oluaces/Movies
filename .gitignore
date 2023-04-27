@@ -5,3 +5,4 @@ build
 dist
 movielens.spec
 make-app.sh
+bin
