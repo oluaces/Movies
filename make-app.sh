@@ -1,1 +1,1 @@
-pyinstaller --icon movielens.png --windowed  --onefile --add-data "datos:datos"  movielens.py
+pyinstaller --icon movielens.ico --windowed --add-data "datos:datos"  movielens.py
